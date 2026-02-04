@@ -1,0 +1,33 @@
+name: Weekly Guideline Check
+
+on:
+  schedule:
+    # 毎週月曜日の朝8時 (JST) = UTC 日曜日の 23:00
+    - cron: '0 23 * * 0'
+  workflow_dispatch: # 手動実行用
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run checker
+        run: python checker.py
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: update-report
+          path: update_report.csv
