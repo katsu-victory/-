@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import os
 import pandas as pd
+import re
 from datetime import datetime
 
 # 監視対象の設定
@@ -20,6 +21,7 @@ TARGETS = [
 ]
 
 KEYWORDS = ["ガイドライン", "規約", "指針", "診療手引き"]
+DATE_PATTERN = r'(\d{4}[年/]\d{1,2}[月/]\d{1,2}日?)' # 2024年1月1日 や 2024/01/01 を探す
 HISTORY_FILE = "history.json"
 REPORT_FILE = "update_report.csv"
 
@@ -36,38 +38,43 @@ def save_history(history):
     with open(HISTORY_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
+def extract_date(text):
+    """テキストから日付っぽい部分を抜き出す"""
+    match = re.search(DATE_PATTERN, text)
+    return match.group(1) if match else "日付不明"
+
 def check_site(target):
     found_items = []
     try:
-        # User-Agentを設定してブロックを防ぐ
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"}
         response = requests.get(target["url"], headers=headers, timeout=20)
         response.raise_for_status()
 
         if target["type"] == "html":
             soup = BeautifulSoup(response.content, "html.parser")
-            # aタグやhタグなどからテキストを抽出
-            tags = soup.find_all(["a", "h2", "h3", "div", "p"])
-            for tag in tags:
-                text = tag.get_text().strip()
-                # キーワードが含まれているか、かつ適切な長さか
+            # 出版社のサイト構造に合わせて、ブロック単位で探す試み
+            # 多くのサイトで共通の「リスト項目」になりそうなタグを走査
+            for container in soup.find_all(["li", "tr", "div", "article"]):
+                text = container.get_text(separator=" ").strip()
                 if any(kw in text for kw in KEYWORDS):
-                    if 5 < len(text) < 150:
-                        # 改行などを整理
+                    if 10 < len(text) < 300:
+                        # 複数行を1行にまとめ、余計な空白を削除
                         clean_text = " ".join(text.split())
-                        found_items.append(clean_text)
+                        # そのブロック内に日付があれば抽出
+                        date_str = extract_date(clean_text)
+                        found_items.append({"title": clean_text, "date": date_str})
         
         elif target["type"] == "pdf_header":
-            # PDFは内容の代わりに更新情報を取得
             last_mod = response.headers.get("Last-Modified")
-            etag = response.headers.get("ETag")
-            if last_mod or etag:
-                found_items.append(f"PDF更新検知: {last_mod or etag}")
+            if last_mod:
+                found_items.append({"title": "PDFファイル更新", "date": last_mod})
 
     except Exception as e:
         print(f"Error checking {target['name']}: {e}")
     
-    return list(set(found_items))
+    # 重複削除
+    unique_items = {item['title']: item for item in found_items}.values()
+    return list(unique_items)
 
 def main():
     history = load_history()
@@ -85,38 +92,39 @@ def main():
             history[site_name] = []
             
         for item in items:
-            if item not in history[site_name]:
+            title = item["title"]
+            pub_date = item["date"]
+            
+            if title not in history[site_name]:
                 new_discoveries.append({
+                    "ステータス": "★新着",
                     "出版社": site_name,
-                    "内容": item,
+                    "出版年月日(推定)": pub_date,
+                    "タイトル内容": title,
                     "URL": target["url"],
                     "検知日": today
                 })
-                history[site_name].append(item)
+                history[site_name].append(title)
     
     save_history(history)
     
-    # レポートの作成・追記
     if new_discoveries:
         new_df = pd.DataFrame(new_discoveries)
         
-        # 以前の古い形式のファイルをリセットして新しく作り直す（初回のみ）
-        # もし既に正しいヘッダーのファイルがあれば追記する
         if os.path.exists(REPORT_FILE):
             try:
                 old_df = pd.read_csv(REPORT_FILE)
-                # ヘッダーが旧形式（IDが含まれるなど）ならリセット
-                if "ID" in old_df.columns or "CSV記載日" in old_df.columns:
-                    combined_df = new_df
-                else:
-                    combined_df = pd.concat([old_df, new_df], ignore_index=True)
+                # 既存データのステータスを「既知」に更新して、古い発見も残す
+                if "ステータス" in old_df.columns:
+                    old_df["ステータス"] = "既知"
+                combined_df = pd.concat([new_df, old_df], ignore_index=True)
             except:
                 combined_df = new_df
         else:
             combined_df = new_df
             
         combined_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
-        print(f"\n{len(new_discoveries)} 件の新しいガイドライン/規約が見つかりました。")
+        print(f"\n{len(new_discoveries)} 件の新着を検知しました。")
     else:
         print("\n新しい情報は検知されませんでした。")
 
