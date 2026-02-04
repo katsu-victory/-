@@ -4,43 +4,40 @@ on:
   schedule:
     # 毎週月曜日の朝8時 (JST) = UTC 日曜日の 23:00
     - cron: '0 23 * * 0'
-  workflow_dispatch: # 手動で「今すぐ実行」ボタンを押すことも可能です
+  workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 実行結果をリポジトリに保存するために必要
+      contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4 # v3からv4に更新
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5 # v4からv5に更新
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install pandas requests beautifulsoup4 lxml
 
       - name: Run checker
         run: python checker.py
 
-      - name: Check for changes and commit
+      - name: Commit and Push changes
         run: |
-          # 実行の結果、レポートファイルが生成・更新されたか確認
-          if [ -f "update_report.csv" ]; then
-            git config --local user.email "github-actions[bot]@users.noreply.github.com"
-            git config --local user.name "github-actions[bot]"
-            git add update_report.csv
-            # 差分がある場合のみコミット
-            git diff --quiet && git diff --staged --quiet || (git commit -m "Update: ガイドライン更新検知レポート $(date +'%Y-%m-%d')" && git push)
-          fi
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          # history.json と update_report.csv の両方を保存
+          git add history.json update_report.csv || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update discovery history $(date +'%Y-%m-%d')" && git push)
 
-      - name: Upload report as artifact
+      - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4 # v3からv4に更新
+        uses: actions/upload-artifact@v4
         with:
-          name: update-report
+          name: new-guideline-report
           path: update_report.csv
