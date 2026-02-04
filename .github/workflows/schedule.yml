@@ -1,10 +1,11 @@
-name: Weekly Guideline Check
+name: Daily Guideline Check
 
 on:
   schedule:
-    # 毎週月曜日の朝8時 (JST) = UTC 日曜日の 23:00
-    - cron: '0 23 * * 0'
-  workflow_dispatch:
+    # 毎日朝8時 (JST) = UTC 前日の 23:00
+    # '0 23 * * *' に変更することで毎日実行されます
+    - cron: '0 23 * * *'
+  workflow_dispatch: # 手動で「今すぐ実行」することも可能です
 
 jobs:
   check:
@@ -31,13 +32,13 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          # history.json と update_report.csv を保存して「記憶」を継承する
-          git add history.json update_report.csv || true
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update discovery: 新着ガイドライン検知 $(date +'%Y-%m-%d')" && git push)
+          # 履歴ファイル、レポートCSV、ダッシュボードHTMLをすべて保存
+          git add history.json update_report.csv index.html || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Daily Update: 新着ガイドライン検知 $(date +'%Y-%m-%d')" && git push)
 
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: new-guideline-report
+          name: daily-guideline-report
           path: update_report.csv
