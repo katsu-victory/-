@@ -12,6 +12,9 @@
             .status-new { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; }
             .status-old { background-color: #f3f4f6; color: #6b7280; }
             .pub-date-box { font-family: 'Courier New', Courier, monospace; }
+            th.sortable { cursor: pointer; position: relative; }
+            th.sortable:hover { background-color: #1e3a8a; }
+            th.sortable::after { content: ' ↕'; font-size: 0.8em; opacity: 0.5; }
         </style>
     </head>
     <body class="bg-gray-100 p-4 md:p-10 text-gray-800">
@@ -23,26 +26,26 @@
                 </div>
                 <div class="bg-white px-6 py-2 rounded-full shadow-inner border border-gray-200">
                     <span class="text-xs text-gray-400 block font-bold">最終巡回日時</span>
-                    <span class="font-mono text-sm font-bold text-blue-700">2026-02-04 08:33</span>
+                    <span class="font-mono text-sm font-bold text-blue-700">2026-02-04 08:38</span>
                 </div>
             </header>
             
             <div class="bg-white shadow-2xl rounded-3xl overflow-hidden border border-gray-200">
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200" id="mainTable">
                         <thead>
                             <tr class="bg-blue-900 text-white shadow-md">
-                                <th class="px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Status</th>
-                                <th class="px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Publisher</th>
-                                <th class="px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Pub Date</th>
-                                <th class="px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Content Title</th>
-                                <th class="px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Detected</th>
+                                <th onclick="sortTable(0)" class="sortable px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Status</th>
+                                <th onclick="sortTable(1)" class="sortable px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Publisher</th>
+                                <th onclick="sortTable(2)" class="sortable px-6 py-5 text-left text-xs font-black uppercase tracking-tighter text-blue-200">Pub Date</th>
+                                <th onclick="sortTable(3)" class="sortable px-6 py-5 text-left text-xs font-black uppercase tracking-tighter">Content Title</th>
+                                <th onclick="sortTable(4)" class="sortable px-6 py-5 text-left text-xs font-black uppercase tracking-tighter text-blue-200">Detected</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
     
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">診断と治療社</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/12/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -53,8 +56,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">診断と治療社</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/12/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -65,8 +68,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/02/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -77,8 +80,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/02/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -89,8 +92,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/01/16</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -101,8 +104,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/10/30</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -113,8 +116,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/09/30</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -125,8 +128,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/09/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -137,8 +140,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/07/25</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -149,8 +152,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/07/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -161,8 +164,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/06/30</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -173,8 +176,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/06/15</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -185,8 +188,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/05/30</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -197,8 +200,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/05/25</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -209,8 +212,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/03/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -221,8 +224,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/03/15</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -233,8 +236,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -245,8 +248,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2024/12/25</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -257,8 +260,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2024/11/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -269,8 +272,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -281,8 +284,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -293,8 +296,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -305,8 +308,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -317,8 +320,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -329,8 +332,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -341,8 +344,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -353,8 +356,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -365,8 +368,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -377,8 +380,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -389,8 +392,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/03/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -401,8 +404,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -413,8 +416,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2024/12/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -425,8 +428,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2024/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -437,8 +440,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/02/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -449,8 +452,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/11/05</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -461,8 +464,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/10/30</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -473,8 +476,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/07/10</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -485,8 +488,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/06/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -497,8 +500,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/02/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -509,8 +512,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2025/01/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -521,8 +524,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2023/10/27</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -533,8 +536,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2023/10/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -545,8 +548,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2023/09/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -557,8 +560,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2023/07/20</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -569,8 +572,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2023/03/31</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -581,8 +584,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2022/12/26</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -593,8 +596,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2022/12/26</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -605,8 +608,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2022/12/26</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -617,8 +620,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2022/09/24</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -629,8 +632,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2022/09/10</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -641,8 +644,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2022/04/01</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -653,8 +656,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2021/08/05</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -665,8 +668,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約検索)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2021/03/10</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -677,8 +680,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(規約PDF)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/02/02</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -689,8 +692,8 @@
                                 <td class="px-6 py-5 whitespace-nowrap text-xs text-gray-400 font-mono">2026-02-04</td>
                             </tr>
         
-                            <tr class="hover:bg-blue-50 transition-all bg-red-50/70">
-                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-new shadow-sm">★新着</span></td>
+                            <tr class="hover:bg-blue-50 transition-all ">
+                                <td class="px-6 py-5 whitespace-nowrap"><span class="px-4 py-1.5 rounded-full text-[10px] font-black status-old">既知</span></td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-600">金原出版(GL PDF)</td>
                                 <td class="px-6 py-5 whitespace-nowrap text-sm pub-date-box text-blue-800 font-bold">2026/02/02</td>
                                 <td class="px-6 py-5 text-sm leading-relaxed">
@@ -1897,6 +1900,45 @@
                 &copy; 2026 診療ガイドライン更新監視システム | 毎日AM8:00自動更新
             </footer>
         </div>
+        
+        <script>
+        function sortTable(n) {
+            var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+            table = document.getElementById("mainTable");
+            switching = true;
+            dir = "asc";
+            while (switching) {
+                switching = false;
+                rows = table.rows;
+                for (i = 1; i < (rows.length - 1); i++) {
+                    shouldSwitch = false;
+                    x = rows[i].getElementsByTagName("TD")[n];
+                    y = rows[i + 1].getElementsByTagName("TD")[n];
+                    if (dir == "asc") {
+                        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    } else if (dir == "desc") {
+                        if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                }
+                if (shouldSwitch) {
+                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                    switching = true;
+                    switchcount++;
+                } else {
+                    if (switchcount == 0 && dir == "asc") {
+                        dir = "desc";
+                        switching = true;
+                    }
+                }
+            }
+        }
+        </script>
     </body>
     </html>
     
