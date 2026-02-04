@@ -1,93 +1,104 @@
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import re
-from datetime import datetime
+import json
 import os
+from datetime import datetime
 
-# 設定
-CSV_FILE = 'guidelines.csv'  # アップロードされたCSVのファイル名に合わせて変更してください
-OUTPUT_FILE = 'update_report.csv'
+# 監視対象の設定
+TARGETS = [
+    {"name": "医学図書出版", "url": "https://igakutosho.co.jp/collections/book", "type": "html"},
+    {"name": "メディカルレビュー社", "url": "https://med.m-review.co.jp/merebo/products/book", "type": "html"},
+    {"name": "診断と治療社", "url": "https://www.shindan.co.jp/", "type": "html"},
+    {"name": "南江堂", "url": "https://www.nankodo.co.jp/shinkan/list.aspx?div=d", "type": "html"},
+    {"name": "医学書院", "url": "https://www.igaku-shoin.co.jp/", "type": "html"},
+    {"name": "金原出版(GL)", "url": "https://www.kanehara-shuppan.co.jp/books/search_list.html?d=08&c=02", "type": "html"},
+    {"name": "金原出版(規約)", "url": "https://www.kanehara-shuppan.co.jp/books/search_list.html?d=08&c=01", "type": "html"},
+    # PDFは中身の解析が難しいため、ファイルの更新状況(ヘッダー)を確認
+    {"name": "金原出版(規約PDF)", "url": "https://www.kanehara-shuppan.co.jp/_data/books/ky_new.pdf", "type": "pdf_header"},
+    {"name": "金原出版(GL PDF)", "url": "https://www.kanehara-shuppan.co.jp/_data/books/gl_new.pdf", "type": "pdf_header"}
+]
 
-def get_last_updated_from_web(url):
-    """
-    URL先のHTMLから日付情報を抽出する。
-    国立がん研究センター(ganjoho.jp)の構造を主なターゲットにしています。
-    """
+KEYWORDS = ["ガイドライン", "規約", "指針"]
+HISTORY_FILE = "history.json"
+REPORT_FILE = "update_report.csv"
+
+def load_history():
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+def save_history(history):
+    with open(HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+def check_site(target):
+    found_items = []
     try:
-        response = requests.get(url, timeout=15)
+        response = requests.get(target["url"], timeout=20)
         response.raise_for_status()
-        soup = BeautifulSoup(response.content, 'html.parser')
 
-        # 1. 特定のクラス(例: .update)を探す
-        update_text = ""
-        update_element = soup.find(class_=re.compile(r'update|date|last-modified', re.I))
-        if update_element:
-            update_text = update_element.get_text()
-
-        # 2. テキスト全体から日付パターン (YYYY年MM月DD日) を探す
-        # サイト全体のテキストから最新の日付を抽出
-        text = soup.get_text()
-        date_pattern = r'(\d{4}年\d{1,2}月\d{1,2}日)'
-        found_dates = re.findall(date_pattern, text)
-
-        if found_dates:
-            # 最も新しい（一番後ろに現れることが多い）日付を返す
-            return found_dates[-1]
+        if target["type"] == "html":
+            soup = BeautifulSoup(response.content, "html.parser")
+            # ページ内のすべてのテキストからキーワードを含む行を探す
+            # 多くのサイトに対応するため、広めに取得
+            elements = soup.find_all(["a", "div", "span", "h3", "h2"])
+            for el in elements:
+                text = el.get_text().strip()
+                if any(kw in text for kw in KEYWORDS):
+                    # 短すぎる、または長すぎるテキストは除外（ノイズ対策）
+                    if 5 < len(text) < 100:
+                        found_items.append(text)
         
-        return "日付未検出"
-    except Exception as e:
-        return f"エラー: {str(e)}"
+        elif target["type"] == "pdf_header":
+            # PDFの場合は、ETagまたはLast-Modifiedを識別子にする
+            info = response.headers.get("Last-Modified") or response.headers.get("ETag") or "no-info"
+            found_items.append(f"PDF更新情報: {info}")
 
-def check_updates():
-    print(f"--- 実行開始: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---")
+    except Exception as e:
+        print(f"Error checking {target['name']}: {e}")
     
-    # CSVの読み込み
-    try:
-        df = pd.read_csv(CSV_FILE)
-    except Exception as e:
-        print(f"CSVの読み込みに失敗しました: {e}")
-        return
+    return list(set(found_items)) # 重複削除
 
-    updates_found = []
-
-    for index, row in df.iterrows():
-        url = row['URL']
-        current_date_in_csv = str(row['更新・確認日'])
-        gl_name = row['GL名']
+def main():
+    history = load_history()
+    new_discoveries = []
+    
+    print(f"--- 巡回開始: {datetime.now()} ---")
+    
+    for target in TARGETS:
+        print(f"Checking {target['name']}...")
+        items = check_site(target)
         
-        if pd.isna(url) or not url.startswith('http'):
-            continue
-
-        print(f"確認中 ({index+1}/{len(df)}): {gl_name}...")
+        site_name = target["name"]
+        if site_name not in history:
+            history[site_name] = []
+            
+        for item in items:
+            if item not in history[site_name]:
+                print(f"  [新着!] {item}")
+                new_discoveries.append({
+                    "出版社": site_name,
+                    "内容": item,
+                    "URL": target["url"],
+                    "検知日": datetime.now().strftime("%Y-%m-%d")
+                })
+                history[site_name].append(item)
+    
+    save_history(history)
+    
+    if new_discoveries:
+        import pandas as pd
+        df = pd.DataFrame(new_discoveries)
+        # 既存のレポートがあれば追記、なければ新規作成
+        if os.path.exists(REPORT_FILE):
+            old_df = pd.read_csv(REPORT_FILE)
+            df = pd.concat([old_df, df], ignore_index=True)
         
-        web_date = get_last_updated_from_web(url)
-        
-        # 簡易的な比較（文字列の一致確認）
-        # Web上の日付がCSV記載の日付と異なる場合を「更新候補」とする
-        is_updated = False
-        if web_date != "日付未検出" and not web_date.startswith("エラー"):
-            if web_date not in current_date_in_csv:
-                is_updated = True
-        
-        if is_updated:
-            print(f"  [!] 更新の可能性あり: Web={web_date} / CSV={current_date_in_csv}")
-            updates_found.append({
-                'ID': row['id'],
-                'GL名': gl_name,
-                'URL': url,
-                'CSV記載日': current_date_in_csv,
-                'Web検知日': web_date,
-                '確認日時': datetime.now().strftime('%Y-%m-%d')
-            })
-
-    # レポートの保存
-    if updates_found:
-        report_df = pd.DataFrame(updates_found)
-        report_df.to_csv(OUTPUT_FILE, index=False, encoding='utf-8-sig')
-        print(f"\n合計 {len(updates_found)} 件の更新候補が見つかりました。詳細は {OUTPUT_FILE} を確認してください。")
+        df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
+        print(f"\n{len(new_discoveries)} 件の新着が見つかりました。")
     else:
-        print("\n更新は見つかりませんでした。")
+        print("\n新しいガイドラインは見つかりませんでした。")
 
 if __name__ == "__main__":
-    check_updates()
+    main()
