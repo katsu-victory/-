@@ -4,8 +4,11 @@ import json
 import os
 import pandas as pd
 import re
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import email.utils
+
+# タイムゾーンの設定（日本時間 JST = UTC+9）
+JST = timezone(timedelta(hours=+9), 'JST')
 
 # 監視対象の設定
 TARGETS = [
@@ -21,7 +24,7 @@ TARGETS = [
     {"name": "金原出版(GL PDF)", "url": "https://www.kanehara-shuppan.co.jp/_data/books/gl_new.pdf", "type": "pdf_header"}
 ]
 
-KEYWORDS = ["ガイドライン", "規約", "指針", "診療手引き", "診療指針", "治療指針", "作成指針"]
+KEYWORDS = ["ガイドライン", "指針", "診療手引き", "診療指針", "治療指針", "作成指針"]
 
 # 日付抽出用のパターン（優先度順）
 DATE_REGICES = [
@@ -150,7 +153,9 @@ def check_site(target):
             if last_mod:
                 try:
                     dt = email.utils.parsedate_to_datetime(last_mod)
-                    date_val = dt.strftime("%Y/%m/%d")
+                    # 日本時間に変換
+                    dt_jst = dt.astimezone(JST)
+                    date_val = dt_jst.strftime("%Y/%m/%d")
                 except:
                     date_val = "-"
             
@@ -164,7 +169,7 @@ def check_site(target):
 
 def generate_html(df):
     """リッチでソート可能なダッシュボードHTMLを生成。"""
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.now(JST).strftime("%Y-%m-%d %H:%M")
     
     display_data = []
     for _, row in df.iterrows():
@@ -210,7 +215,7 @@ def generate_html(df):
                     <p class="text-gray-500 font-bold mt-1 uppercase tracking-widest text-xs">Medical Guideline Monitoring System</p>
                 </div>
                 <div class="bg-white px-6 py-2 rounded-full shadow-inner border border-gray-200">
-                    <span class="text-xs text-gray-400 block font-bold">最終巡回日時</span>
+                    <span class="text-xs text-gray-400 block font-bold">最終巡回日時 (JST)</span>
                     <span class="font-mono text-sm font-bold text-blue-700">{now}</span>
                 </div>
             </header>
@@ -253,7 +258,7 @@ def generate_html(df):
                 </div>
             </div>
             <footer class="mt-12 text-center text-gray-400 text-xs font-bold italic">
-                &copy; 2026 診療ガイドライン更新監視システム | 毎日AM8:00自動更新
+                &copy; 2026 診療ガイドライン更新監視システム | 毎日JST AM8:00自動更新
             </footer>
         </div>
         
@@ -304,7 +309,8 @@ def generate_html(df):
 def main():
     history = load_history()
     new_discoveries = []
-    today = datetime.now().strftime("%Y-%m-%d")
+    # 日本時間の日付を取得
+    today = datetime.now(JST).strftime("%Y-%m-%d")
     
     for target in TARGETS:
         site_name = target["name"]
