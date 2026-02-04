@@ -39,14 +39,9 @@ def save_history(history):
         json.dump(history, f, ensure_ascii=False, indent=2)
 
 def clean_title(text):
-    """ISBNや価格、余計な情報を強力に除去する"""
-    # ISBN-13 (978...) や ISBN-10 のパターンを除去
     text = re.sub(r'ISBN\s?[:：]?\s?(97[89][- ]?)?([0-9Xx][- ]?){9,13}', '', text)
-    # 価格表示の除去
     text = re.sub(r'(定価|本体|税込|税別)[:：]?\s?[0-9,]+円?.*', '', text)
-    # 余計な「編集)」や「発行)」などのカッコ書きを除去(ノイズになりやすいため)
     text = re.sub(r'(編集|発行|著者|訳)\)?[:：].*', '', text)
-    # 改行と重複スペースを整理
     text = " ".join(text.split())
     return text.strip()
 
@@ -75,8 +70,20 @@ def check_site(target):
     return found_items
 
 def generate_html(df):
-    """CSVから見やすいHTMLページを生成する"""
+    """CSVからHTMLを生成。列名の不一致を補正する。"""
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    # 列名の正規化（古い「内容」列などを「タイトル内容」に統一）
+    rename_map = {"内容": "タイトル内容", "GL名": "タイトル内容"}
+    df = df.rename(columns=rename_map)
+    
+    # 必要な列が欠けている場合の補完
+    for col in ["ステータス", "出版社", "タイトル内容", "検知日"]:
+        if col not in df.columns:
+            df[col] = "-"
+    
+    df = df.fillna("-")
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="ja">
@@ -86,35 +93,45 @@ def generate_html(df):
         <title>ガイドライン新着状況</title>
         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     </head>
-    <body class="bg-gray-50 p-4 md:p-8">
-        <div class="max-w-5xl mx-auto">
-            <h1 class="text-2xl font-bold mb-4 text-blue-800">診療ガイドライン新着ダッシュボード</h1>
-            <p class="text-gray-600 mb-8">最終確認日時: {now}</p>
-            <div class="bg-white shadow rounded-lg overflow-hidden">
+    <body class="bg-gray-50 p-4 md:p-8 font-sans">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-3xl font-extrabold mb-2 text-blue-900">診療ガイドライン新着監視</h1>
+            <p class="text-gray-500 mb-8">最終更新: {now}</p>
+            <div class="bg-white shadow-xl rounded-xl overflow-hidden border border-gray-200">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状態</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">出版社</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">内容</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">検知日</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">状態</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">出版社</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">タイトル・内容</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">検知日</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-200">
     """
     for _, row in df.iterrows():
-        status_cls = "bg-red-100 text-red-800" if row['ステータス'] == "★新着" else "bg-gray-100 text-gray-600"
+        status = str(row['ステータス'])
+        status_cls = "bg-red-500 text-white" if "新着" in status else "bg-gray-200 text-gray-600"
+        url = row['URL'] if 'URL' in row and row['URL'] != "-" else "#"
+        
         html_content += f"""
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 rounded text-xs {status_cls}">{row['ステータス']}</span></td>
-                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{row['出版社']}</td>
-                            <td class="px-6 py-4 text-sm text-gray-700"><a href="{row['URL']}" target="_blank" class="hover:underline text-blue-600">{row['タイトル内容']}</a></td>
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 rounded-full text-xs font-bold {status_cls}">{status}</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-800">{row['出版社']}</td>
+                            <td class="px-6 py-4 text-sm text-gray-700">
+                                <a href="{url}" target="_blank" class="text-blue-600 hover:text-blue-800 font-medium">
+                                    {row['タイトル内容']}
+                                </a>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row['検知日']}</td>
                         </tr>
         """
     html_content += """
                     </tbody>
                 </table>
+            </div>
+            <div class="mt-6 text-center text-gray-400 text-xs">
+                ※URLをクリックすると各サイトの新着ページへ飛びます
             </div>
         </div>
     </body>
@@ -143,17 +160,28 @@ def main():
     
     save_history(history)
     
-    # データの統合とレポート保存
     if os.path.exists(REPORT_FILE):
-        old_df = pd.read_csv(REPORT_FILE)
-        if "ステータス" in old_df.columns: old_df["ステータス"] = "既知"
-        df = pd.concat([pd.DataFrame(new_discoveries), old_df], ignore_index=True)
+        try:
+            old_df = pd.read_csv(REPORT_FILE)
+            # 古いデータのステータス更新
+            if "ステータス" in old_df.columns:
+                old_df["ステータス"] = "既知"
+            # 新旧データの統合
+            df = pd.concat([pd.DataFrame(new_discoveries), old_df], ignore_index=True)
+        except:
+            df = pd.DataFrame(new_discoveries)
     else:
         df = pd.DataFrame(new_discoveries)
     
     if not df.empty:
+        # 重複行を削除（タイトル内容が同じものはまとめる）
+        if "タイトル内容" in df.columns:
+            df = df.drop_duplicates(subset=["タイトル内容"], keep="first")
+        elif "内容" in df.columns:
+            df = df.drop_duplicates(subset=["内容"], keep="first")
+            
         df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
-        generate_html(df.head(100)) # 最新100件を表示
+        generate_html(df.head(100))
     
 if __name__ == "__main__":
     main()
