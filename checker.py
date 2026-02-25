@@ -16,7 +16,6 @@ TODAY = datetime.now(JST).strftime("%Y-%m-%d")
 REPORT_FILE = "update_report.csv"
 
 KEYWORDS = ["ガイドライン", "指針", "診療手引き", "診療指針", "治療指針", "取扱い規約"]
-
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
 # =========================
@@ -30,8 +29,8 @@ def normalize_title(title):
     t = re.sub(r'[^\wぁ-んァ-ン一-龥]', '', t)
     return t.strip()
 
-def extract_year(title):
-    m = re.search(r'(20\d{2})', title)
+def extract_year(text):
+    m = re.search(r'(20\d{2})', text)
     return m.group(1) if m else "-"
 
 # =========================
@@ -158,11 +157,9 @@ def check_site(target):
     rows = []
 
     try:
-        res = requests.get(target["url"], headers=HEADERS, timeout=30)
-        res.raise_for_status()
-
-        # PDF単体監視
+        # ---------- PDF単体 ----------
         if target["type"] == "pdf":
+            res = requests.head(target["url"], headers=HEADERS, timeout=30, allow_redirects=True)
             last = res.headers.get("Last-Modified")
             date = "-"
             if last:
@@ -180,15 +177,20 @@ def check_site(target):
             })
             return rows
 
+        # ---------- HTML ----------
+        res = requests.get(target["url"], headers=HEADERS, timeout=30)
+        res.raise_for_status()
         soup = BeautifulSoup(res.content, "html.parser")
 
-        # PDFリンク一覧
+        # ---------- PDFリンク一覧 ----------
         if target["type"] == "html_pdf_index":
             for a in soup.select(target["selector"]):
                 title = a.get_text(strip=True)
                 if any(k in title for k in KEYWORDS):
-                    href = urljoin(target["url"], a.get("href"))
+                    href = a.get("href")
+                    url = urljoin(target["url"], href) if href else target["url"]
                     norm = normalize_title(title)
+
                     rows.append({
                         "論理ID": f"{target['publisher_key']}_{norm}",
                         "正式タイトル": title,
@@ -196,15 +198,18 @@ def check_site(target):
                         "種別": "PDF",
                         "版情報": extract_year(title),
                         "発刊日": extract_year(title),
-                        "URL": href
+                        "URL": url
                     })
             return rows
 
-        # 通常HTML
+        # ---------- 通常HTML ----------
         for a in soup.select(target["selector"]):
             text = a.get_text(strip=True)
             if any(k in text for k in KEYWORDS) and 8 < len(text) < 200:
+                href = a.get("href")
+                url = urljoin(target["url"], href) if href else target["url"]
                 norm = normalize_title(text)
+
                 rows.append({
                     "論理ID": f"{target['publisher_key']}_{norm}",
                     "正式タイトル": text,
@@ -212,7 +217,7 @@ def check_site(target):
                     "種別": "Web",
                     "版情報": extract_year(text),
                     "発刊日": extract_year(text),
-                    "URL": target["url"]
+                    "URL": url
                 })
 
     except Exception as e:
