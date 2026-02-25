@@ -36,29 +36,48 @@ def extract_year(text):
 def extract_year(title):
     m = re.search(r'(20\d{2})', text)
     return m.group(1) if m else "-"
-def extract_publish_date(text, url=None, soup=None):
+def extract_publish_date(text=None, url=None):
     """
     優先順位:
-    1) 明示的な YYYY/MM/DD, YYYY-MM-DD
+    1) テキスト内の日付（YYYY/MM/DD, YYYY-MM-DD）
     2) YYYY年MM月DD日
-    3) Last-Modified
-    4) YYYY（年のみ）
+    3) リンク先本文から取得
+    4) Last-Modified
+    5) 年のみ
     """
+
     if text:
-        # YYYY/MM/DD or YYYY-MM-DD
+        # 1) 2024/03/01 or 2024-03-01
         m = re.search(r'(20\d{2})[/-](\d{1,2})[/-](\d{1,2})', text)
         if m:
             return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
 
-        # YYYY年MM月DD日
+        # 2) 2024年3月1日
         m = re.search(r'(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日', text)
         if m:
             return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
 
-    # Last-Modified
+    # 3) リンク先本文を見る
     if url:
         try:
-            res = requests.head(url, headers=HEADERS, timeout=20, allow_redirects=True)
+            page = requests.get(url, headers=HEADERS, timeout=15)
+            soup2 = BeautifulSoup(page.content, "html.parser")
+            body_text = soup2.get_text(" ", strip=True)
+
+            m = re.search(r'(20\d{2})[/-](\d{1,2})[/-](\d{1,2})', body_text)
+            if m:
+                return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+
+            m = re.search(r'(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日', body_text)
+            if m:
+                return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+
+        except:
+            pass
+
+        # 4) Last-Modified
+        try:
+            res = requests.head(url, headers=HEADERS, timeout=10, allow_redirects=True)
             lm = res.headers.get("Last-Modified")
             if lm:
                 dt = email.utils.parsedate_to_datetime(lm).astimezone(JST)
@@ -66,7 +85,7 @@ def extract_publish_date(text, url=None, soup=None):
         except:
             pass
 
-    # 年だけ
+    # 5) 年だけ
     if text:
         m = re.search(r'(20\d{2})', text)
         if m:
@@ -248,10 +267,7 @@ def check_site(target):
                         "出版社": target["name"],
                         "種別": "PDF",
                         "版情報": extract_year(title),
-                        date = get_last_modified(url)
-                        if date == "-":
-                            date = extract_year(title)
-                        
+                        date = extract_publish_date(title, url)                        
                         "発刊日": date,
                         "URL": url
                     })
@@ -271,10 +287,7 @@ def check_site(target):
                     "出版社": target["name"],
                     "種別": "Web",
                     "版情報": extract_year(text),
-                    date = get_last_modified(url)
-                    if date == "-":
-                        date = extract_year(text)
-                    
+                    date = extract_publish_date(text, url)                    
                     "発刊日": date,
                     "URL": url
                 })
@@ -365,6 +378,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
