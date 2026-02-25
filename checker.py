@@ -491,40 +491,16 @@ def _ensure(df: pd.DataFrame) -> pd.DataFrame:
     return df[CSV_COLUMNS]
 
 def main():
-    rows = []
+    print("=== Collecting current data ===")
+    rows: List[Dict] = []
 
     for t in TARGETS:
-        res = requests.get(t["url"], headers=HEADERS, timeout=TIMEOUT_GET)
-        soup = BeautifulSoup(res.content, "html.parser")
-        for a in soup.select(t["selector"]):
-            title = a.get_text(strip=True)
-            if not title or not any(k in title for k in KEYWORDS):
-                continue
-            href = a.get("href")
-            url = urljoin(t["url"], href) if href else t["url"]
+        print(f"Checking {t['name']}")
+        rows.extend(check_site(t))
 
-            dates = extract_dates_for_url(url)
-            lm = get_last_modified(url)
-            lid = f"{t['publisher_key']}_{normalize_title(title)}"
-
-            rows.append({
-                "論理ID": lid,
-                "正式タイトル": title,
-                "出版社": t["name"],
-                "種別": "Web",
-                "版情報": extract_year_hint(title),
-                "発刊日": dates["publication"].value,
-                "発刊日_level": dates["publication"].level,
-                "発刊日_evidence": dates["publication"].evidence,
-                "改訂日": dates["revision"].value,
-                "改訂日_level": dates["revision"].level,
-                "改訂日_evidence": dates["revision"].evidence,
-                "検知日": TODAY,
-                "HTTP最終更新日": lm.value,
-                "HTTP最終更新日_level": lm.level,
-                "HTTP最終更新日_evidence": lm.evidence,
-                "URL": url,
-            })
+    if not rows:
+        print("No data collected.")
+        return
 
     current = _ensure(pd.DataFrame(rows))
 
@@ -537,10 +513,12 @@ def main():
     merged = merged.drop_duplicates(subset="論理ID", keep="last")
 
     merged["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S %z")
-    merged = merged.sort_values(["出版社","論理ID"])
+    merged = merged.sort_values(["出版社", "論理ID"])
 
     merged.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
+    print(f"Saved {REPORT_FILE}")
 
 if __name__ == "__main__":
     main()
+
 
