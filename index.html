@@ -9,8 +9,10 @@
 
 <style>
   body { font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif; }
-  th.sortable { cursor: pointer; }
   .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
+
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable .sort-ind { opacity: .85; font-weight: 900; margin-left: .4rem; }
 
   .badge-new { background:#dc2626; color:white; }
   .badge-old { background:#e5e7eb; color:#374151; }
@@ -39,8 +41,8 @@
   <div class="mono text-xs">CSV更新 <span id="csvUpdated">-</span></div>
 </section>
 
-<section class="bg-white rounded-xl shadow p-4 mb-6 flex gap-3 flex-wrap">
-  <input id="q" class="border rounded px-3 py-2 w-64" placeholder="検索（タイトル・出版社・URL）">
+<section class="bg-white rounded-xl shadow p-4 mb-6 flex gap-3 flex-wrap items-center">
+  <input id="q" class="border rounded px-3 py-2 w-72" placeholder="検索（タイトル・出版社・URL）">
   <select id="statusFilter" class="border rounded px-3 py-2">
     <option value="">全ステータス</option>
     <option value="★新着">★新着</option>
@@ -51,18 +53,34 @@
     <option value="200" selected>200</option>
     <option value="1000000">全件</option>
   </select>
+
+  <div class="ml-auto flex gap-2 items-center">
+    <span class="text-xs text-gray-500 font-bold">並び替え:</span>
+    <select id="sortKey" class="border rounded px-3 py-2">
+      <option value="検知日" selected>検知日</option>
+      <option value="発刊日">発刊日</option>
+      <option value="改訂日">改訂日</option>
+      <option value="出版社">出版社</option>
+      <option value="正式タイトル">正式タイトル</option>
+      <option value="ステータス">ステータス</option>
+    </select>
+    <select id="sortDir" class="border rounded px-3 py-2">
+      <option value="desc" selected>降順</option>
+      <option value="asc">昇順</option>
+    </select>
+  </div>
 </section>
 
 <section class="bg-white rounded-xl shadow overflow-x-auto">
 <table class="min-w-full text-sm">
 <thead class="bg-blue-900 text-white">
 <tr>
-  <th class="px-4 py-3">Status</th>
-  <th class="px-4 py-3">出版社</th>
-  <th class="px-4 py-3">発刊日</th>
-  <th class="px-4 py-3">改訂日</th>
-  <th class="px-4 py-3">検知日</th>
-  <th class="px-4 py-3">タイトル / URL</th>
+  <th class="px-4 py-3 sortable" data-key="ステータス">Status<span class="sort-ind" data-ind="ステータス"></span></th>
+  <th class="px-4 py-3 sortable" data-key="出版社">出版社<span class="sort-ind" data-ind="出版社"></span></th>
+  <th class="px-4 py-3 sortable" data-key="発刊日">発刊日<span class="sort-ind" data-ind="発刊日"></span></th>
+  <th class="px-4 py-3 sortable" data-key="改訂日">改訂日<span class="sort-ind" data-ind="改訂日"></span></th>
+  <th class="px-4 py-3 sortable" data-key="検知日">検知日<span class="sort-ind" data-ind="検知日"></span></th>
+  <th class="px-4 py-3 sortable" data-key="正式タイトル">タイトル / URL<span class="sort-ind" data-ind="正式タイトル"></span></th>
 </tr>
 </thead>
 <tbody id="tbody"></tbody>
@@ -77,105 +95,210 @@
 
 <script>
 const CSV_PATH = "update_report.csv";
-const state = { rows: [] };
+
+/** state */
+const state = {
+  rows: [],
+  sortKey: "検知日",
+  sortDir: "desc",
+};
 
 const badgeClass = (lvl) => ({
-  text:"badge-text", meta:"badge-meta", pdf:"badge-pdf",
-  header:"badge-header", unknown:"badge-unknown"
+  text:"badge-text",
+  meta:"badge-meta",
+  pdf:"badge-pdf",
+  header:"badge-header",
+  unknown:"badge-unknown"
 }[lvl] || "badge-unknown");
 
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>(
-{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
-));}
-
-function parseCSV(text){
-  const rows=[]; let r=[],f="",q=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i];
-    if(c=='"'){ if(q && text[i+1]=='"'){f+='"';i++;} else q=!q; }
-    else if(!q && (c==","||c=="\n")){
-      r.push(f); f="";
-      if(c=="\n"){ rows.push(r); r=[]; }
-    } else f+=c;
-  }
-  r.push(f); rows.push(r); return rows;
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g, c => (
+    {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+  ));
 }
 
-async function loadCsv(){
-  const res=await fetch(CSV_PATH+"?v="+Date.now(),{cache:"no-store"});
-  const txt=await res.text();
-  const t=parseCSV(txt);
-  const h=t[0];
-  state.rows=t.slice(1).map(r=>{
-    const o={}; h.forEach((k,i)=>o[k]=r[i]||""); return o;
-  });
+function parseCSV(text){
+  const rows=[]; let r=[], f="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c === '"'){
+      if(q && text[i+1] === '"'){ f+='"'; i++; }
+      else q = !q;
+    } else if(!q && (c === "," || c === "\n")){
+      r.push(f); f="";
+      if(c === "\n"){ rows.push(r); r=[]; }
+    } else {
+      f += c;
+    }
+  }
+  r.push(f); rows.push(r);
+  return rows;
+}
 
-  document.getElementById("csvUpdated").textContent =
-    state.rows[0]?.["CSV更新日時"]||"-";
-  apply();
+/** YYYY-MM-DD -> number, invalid/blank -> null */
+function ymdToKey(s){
+  if(!s) return null;
+  const m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return null;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  if(!Number.isFinite(y) || !Number.isFinite(mo) || !Number.isFinite(d)) return null;
+  return y*10000 + mo*100 + d;
+}
+
+function compareNullable(a, b, dir){
+  // nulls always last
+  const an = (a === null || a === undefined);
+  const bn = (b === null || b === undefined);
+  if(an && bn) return 0;
+  if(an) return 1;
+  if(bn) return -1;
+  return dir === "asc" ? (a - b) : (b - a);
+}
+
+function sortRows(rows){
+  const k = state.sortKey;
+  const dir = state.sortDir;
+
+  const isDate = (k === "発刊日" || k === "改訂日" || k === "検知日");
+
+  return [...rows].sort((ra, rb) => {
+    if(isDate){
+      const ak = ymdToKey(ra[k] || "");
+      const bk = ymdToKey(rb[k] || "");
+      const c = compareNullable(ak, bk, dir);
+      if(c !== 0) return c;
+      // tie-breakers (stable-ish)
+      return (ra["論理ID"] || "").localeCompare(rb["論理ID"] || "", "ja");
+    }
+
+    const av = String(ra[k] || "");
+    const bv = String(rb[k] || "");
+    const c = dir === "asc"
+      ? av.localeCompare(bv, "ja")
+      : bv.localeCompare(av, "ja");
+    if(c !== 0) return c;
+    return (ra["論理ID"] || "").localeCompare(rb["論理ID"] || "", "ja");
+  });
 }
 
 function apply(){
-  const q=document.getElementById("q").value.toLowerCase();
-  const st=document.getElementById("statusFilter").value;
-  const lim=+document.getElementById("limit").value;
+  const q = document.getElementById("q").value.toLowerCase();
+  const st = document.getElementById("statusFilter").value;
+  const lim = +document.getElementById("limit").value;
 
-  let rows=[...state.rows];
-  if(st) rows=rows.filter(r=>r["ステータス"]===st);
-  if(q) rows=rows.filter(r=>
-    (r["正式タイトル"]+r["出版社"]+r["URL"]).toLowerCase().includes(q)
+  let rows = [...state.rows];
+
+  if(st) rows = rows.filter(r => (r["ステータス"] || "") === st);
+  if(q) rows = rows.filter(r =>
+    ((r["正式タイトル"]||"") + (r["出版社"]||"") + (r["URL"]||""))
+      .toLowerCase().includes(q)
   );
 
-  document.getElementById("totalCount").textContent=state.rows.length;
-  document.getElementById("shownCount").textContent=rows.length;
-  document.getElementById("newCount").textContent=
-    state.rows.filter(r=>r["ステータス"].includes("新着")).length;
+  document.getElementById("totalCount").textContent = state.rows.length;
+  document.getElementById("shownCount").textContent = rows.length;
+  document.getElementById("newCount").textContent =
+    state.rows.filter(r => (r["ステータス"]||"").includes("新着")).length;
 
-  render(rows.slice(0,lim));
+  rows = sortRows(rows);
+  render(rows.slice(0, lim));
+  updateSortIndicators();
 }
 
 function render(rows){
-  const tb=document.getElementById("tbody"); tb.innerHTML="";
-  rows.forEach(r=>{
-    tb.insertAdjacentHTML("beforeend",`
+  const tb = document.getElementById("tbody");
+  tb.innerHTML = "";
+
+  rows.forEach(r => {
+    const status = (r["ステータス"] || "");
+    tb.insertAdjacentHTML("beforeend", `
 <tr class="border-t hover:bg-blue-50">
-<td class="px-4 py-2">
-  <span class="px-2 py-1 rounded text-xs font-black ${r["ステータス"].includes("新着")?"badge-new":"badge-old"}">
-    ${esc(r["ステータス"])}
-  </span>
-</td>
-<td class="px-4 py-2 font-bold">${esc(r["出版社"])}</td>
+  <td class="px-4 py-2">
+    <span class="px-2 py-1 rounded text-xs font-black ${status.includes("新着") ? "badge-new" : "badge-old"}">
+      ${esc(status || "-")}
+    </span>
+  </td>
 
-<td class="px-4 py-2 mono">
-  ${esc(r["発刊日"]||"-")}
-  <span class="ml-1 px-1 rounded text-[10px] ${badgeClass(r["発刊日_level"])}"
-    title="${esc(r["発刊日_evidence"])}">
-    ${esc(r["発刊日_level"])}
-  </span>
-</td>
+  <td class="px-4 py-2 font-bold">${esc(r["出版社"] || "-")}</td>
 
-<td class="px-4 py-2 mono">
-  ${esc(r["改訂日"]||"-")}
-  <span class="ml-1 px-1 rounded text-[10px] ${badgeClass(r["改訂日_level"])}"
-    title="${esc(r["改訂日_evidence"])}">
-    ${esc(r["改訂日_level"])}
-  </span>
-</td>
+  <td class="px-4 py-2 mono">
+    ${esc(r["発刊日"] || "-")}
+    <span class="ml-1 px-1 rounded text-[10px] ${badgeClass(r["発刊日_level"])}" title="${esc(r["発刊日_evidence"])}">
+      ${esc(r["発刊日_level"] || "unknown")}
+    </span>
+  </td>
 
-<td class="px-4 py-2 mono">${esc(r["検知日"])}</td>
+  <td class="px-4 py-2 mono">
+    ${esc(r["改訂日"] || "-")}
+    <span class="ml-1 px-1 rounded text-[10px] ${badgeClass(r["改訂日_level"])}" title="${esc(r["改訂日_evidence"])}">
+      ${esc(r["改訂日_level"] || "unknown")}
+    </span>
+  </td>
 
-<td class="px-4 py-2">
-  <a href="${esc(r["URL"])}" target="_blank" class="text-blue-700 font-bold">
-    ${esc(r["正式タイトル"])}
-  </a>
-  <div class="mono text-xs text-gray-400 break-all">${esc(r["URL"])}</div>
-</td>
-</tr>`);
+  <td class="px-4 py-2 mono">${esc(r["検知日"] || "-")}</td>
+
+  <td class="px-4 py-2">
+    <a href="${esc(r["URL"] || "#")}" target="_blank" class="text-blue-700 font-bold">
+      ${esc(r["正式タイトル"] || "-")}
+    </a>
+    <div class="mono text-xs text-gray-400 break-all">${esc(r["URL"] || "")}</div>
+  </td>
+</tr>
+    `);
   });
 }
 
-["q","statusFilter","limit"].forEach(id=>{
-  document.getElementById(id).addEventListener("input",apply);
+function updateSortIndicators(){
+  document.querySelectorAll("[data-ind]").forEach(el => el.textContent = "");
+  const ind = document.querySelector(`[data-ind="${CSS.escape(state.sortKey)}"]`);
+  if(ind) ind.textContent = state.sortDir === "asc" ? "▲" : "▼";
+}
+
+async function loadCsv(){
+  const res = await fetch(CSV_PATH + "?v=" + Date.now(), { cache:"no-store" });
+  const txt = await res.text();
+  const t = parseCSV(txt);
+  const h = t[0] || [];
+  state.rows = (t.slice(1) || []).map(r => {
+    const o = {};
+    h.forEach((k, i) => o[k] = r[i] || "");
+    return o;
+  });
+
+  document.getElementById("csvUpdated").textContent =
+    state.rows[0]?.["CSV更新日時"] || "-";
+
+  // init sort dropdowns
+  document.getElementById("sortKey").value = state.sortKey;
+  document.getElementById("sortDir").value = state.sortDir;
+
+  apply();
+}
+
+["q","statusFilter","limit","sortKey","sortDir"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("input", () => {
+    if(id === "sortKey") state.sortKey = el.value;
+    if(id === "sortDir") state.sortDir = el.value;
+    apply();
+  });
+});
+
+// header click sort
+document.querySelectorAll("th.sortable").forEach(th => {
+  th.addEventListener("click", () => {
+    const k = th.getAttribute("data-key");
+    if(!k) return;
+    if(state.sortKey === k){
+      state.sortDir = (state.sortDir === "asc") ? "desc" : "asc";
+    } else {
+      state.sortKey = k;
+      // dates default desc, others asc
+      state.sortDir = (k === "発刊日" || k === "改訂日" || k === "検知日") ? "desc" : "asc";
+    }
+    document.getElementById("sortKey").value = state.sortKey;
+    document.getElementById("sortDir").value = state.sortDir;
+    apply();
+  });
 });
 
 loadCsv();
