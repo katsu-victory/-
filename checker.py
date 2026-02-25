@@ -33,6 +33,46 @@ def normalize_title(title):
 def extract_year(text):
     m = re.search(r'(20\d{2})', text)
     return m.group(1) if m else "-"
+def extract_year(title):
+    m = re.search(r'(20\d{2})', text)
+    return m.group(1) if m else "-"
+def extract_publish_date(text, url=None, soup=None):
+    """
+    優先順位:
+    1) 明示的な YYYY/MM/DD, YYYY-MM-DD
+    2) YYYY年MM月DD日
+    3) Last-Modified
+    4) YYYY（年のみ）
+    """
+    if text:
+        # YYYY/MM/DD or YYYY-MM-DD
+        m = re.search(r'(20\d{2})[/-](\d{1,2})[/-](\d{1,2})', text)
+        if m:
+            return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+
+        # YYYY年MM月DD日
+        m = re.search(r'(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日', text)
+        if m:
+            return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+
+    # Last-Modified
+    if url:
+        try:
+            res = requests.head(url, headers=HEADERS, timeout=20, allow_redirects=True)
+            lm = res.headers.get("Last-Modified")
+            if lm:
+                dt = email.utils.parsedate_to_datetime(lm).astimezone(JST)
+                return dt.strftime("%Y/%m/%d")
+        except:
+            pass
+
+    # 年だけ
+    if text:
+        m = re.search(r'(20\d{2})', text)
+        if m:
+            return m.group(1)
+
+    return "-"
 def get_last_modified(url):
     try:
         res = requests.head(url, headers=HEADERS, timeout=20, allow_redirects=True)
@@ -314,7 +354,7 @@ def main():
         )
         
         # CSV更新日時（JST）
-        final_df["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S JST")
+        final_df["CSV更新日時"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
         
         # 表示用ソート
         final_df = final_df.sort_values(["出版社", "論理ID"])
@@ -325,6 +365,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
