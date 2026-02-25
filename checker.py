@@ -33,6 +33,16 @@ def normalize_title(title):
 def extract_year(text):
     m = re.search(r'(20\d{2})', text)
     return m.group(1) if m else "-"
+def get_last_modified(url):
+    try:
+        res = requests.head(url, headers=HEADERS, timeout=20, allow_redirects=True)
+        lm = res.headers.get("Last-Modified")
+        if lm:
+            dt = email.utils.parsedate_to_datetime(lm).astimezone(JST)
+            return dt.strftime("%Y/%m/%d")
+    except:
+        pass
+    return "-"
 
 # =========================
 # 監視対象
@@ -198,7 +208,11 @@ def check_site(target):
                         "出版社": target["name"],
                         "種別": "PDF",
                         "版情報": extract_year(title),
-                        "発刊日": extract_year(title),
+                        date = get_last_modified(url)
+                        if date == "-":
+                            date = extract_year(title)
+                        
+                        "発刊日": date,
                         "URL": url
                     })
             return rows
@@ -217,7 +231,11 @@ def check_site(target):
                     "出版社": target["name"],
                     "種別": "Web",
                     "版情報": extract_year(text),
-                    "発刊日": extract_year(text),
+                    date = get_last_modified(url)
+                    if date == "-":
+                        date = extract_year(text)
+                    
+                    "発刊日": date,
                     "URL": url
                 })
 
@@ -284,17 +302,29 @@ def main():
             new_row["最終確認日"] = TODAY
             merged.loc[lid] = new_row
             
-    # ---------- 出力 ----------
-    final_df = merged.reset_index(drop=True)
-    final_df["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S JST")
-    final_df = final_df.sort_values(["出版社","論理ID"])
-    final_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
-    final_df = (final_df.sort_values(["論理ID", "URL"]).groupby("論理ID", as_index=False).first()
-)
-
-    print("Saved update_report.csv (FULL MASTER)")
+        # ---------- 出力 ----------
+        final_df = merged.reset_index(drop=True)
+        
+        # 重複整理（論理ID + URL）
+        final_df = (
+            final_df
+            .sort_values(["論理ID", "URL"])
+            .groupby("論理ID", as_index=False)
+            .first()
+        )
+        
+        # CSV更新日時（JST）
+        final_df["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S JST")
+        
+        # 表示用ソート
+        final_df = final_df.sort_values(["出版社", "論理ID"])
+        
+        final_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
+        
+        print("Saved update_report.csv (FULL MASTER)")
 
 if __name__ == "__main__":
     main()
+
 
 
