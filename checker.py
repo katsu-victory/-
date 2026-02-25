@@ -37,7 +37,7 @@ TIMEOUT_HEAD = 20
 # 日付抽出
 # =========================
 
-PUB_LABELS = ["発行", "刊行", "発売", "公開", "公表", "掲載"]
+PUB_LABELS = ["発行日", "発行", "発刊日", "発刊", "刊行", "発売", "公開", "公表", "掲載"]
 REV_LABELS = ["改訂", "更新", "最終更新", "修正"]
 BAD_CONTEXT = ["copyright", "all rights reserved", "©", "c)", "著作権"]
 
@@ -520,5 +520,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
