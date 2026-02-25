@@ -369,24 +369,33 @@ function escapeAttr(s) {
 }
 
 async function fetchCsvLastModified() {
+  const elLM = document.getElementById("csvLastModified");
+  if (!elLM) return;
+
   try {
-    const bust = Date.now();
-    const res = await fetch(`${CSV_PATH}?v=${bust}`, { cache: "no-store" });
-    if (!res.ok) throw new Error("CSV fetch failed: " + res.status);
+    const head = await fetch(CSV_PATH, { method: "HEAD", cache: "no-store" });
+    const lm = head.headers.get("last-modified");
+    if (!lm) {
+      elLM.textContent = "-";
+      return;
+    }
 
-    const text = await res.text();
-    const table = parseCSV(text);
-    const objs = toObjects(table);
+    // GMT → JST
+    const d = new Date(lm);
+    const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
 
-    // 1行目のCSV更新日時を優先して表示（無ければ "-"）
-    const v =
-      (objs[0] && (objs[0]["CSV更新日時"] || objs[0]["csv_updated_at"])) || "-";
+    elLM.textContent = jst.toLocaleString("ja-JP", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
 
-    el("csvLastModified").textContent = v;
   } catch (e) {
     console.error(e);
-    const node = el("csvLastModified");
-    if (node) node.textContent = "-";
+    elLM.textContent = "-";
   }
 }
 
