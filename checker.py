@@ -101,7 +101,52 @@ def get_last_modified(url):
     except:
         pass
     return "-"
+def extract_publish_date_strict(text=None, url=None):
+    """
+    発刊日（YYYY/MM/DD）が明示されている場合のみ返す
+    推定・更新日は含めない
+    """
+    if text:
+        m = re.search(r'(20\d{2})[/-](\d{1,2})[/-](\d{1,2})', text)
+        if m:
+            return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
 
+        m = re.search(r'(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日', text)
+        if m:
+            return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+
+    if url:
+        try:
+            page = requests.get(url, headers=HEADERS, timeout=15)
+            soup = BeautifulSoup(page.content, "html.parser")
+            body = soup.get_text(" ", strip=True)
+
+            m = re.search(r'(20\d{2})[/-](\d{1,2})[/-](\d{1,2})', body)
+            if m:
+                return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+
+            m = re.search(r'(20\d{2})年\s*(\d{1,2})月\s*(\d{1,2})日', body)
+            if m:
+                return f"{m.group(1)}/{int(m.group(2)):02d}/{int(m.group(3)):02d}"
+        except:
+            pass
+
+    return ""
+def extract_last_modified(url):
+    try:
+        res = requests.head(url, headers=HEADERS, timeout=10, allow_redirects=True)
+        lm = res.headers.get("Last-Modified")
+        if lm:
+            dt = email.utils.parsedate_to_datetime(lm).astimezone(JST)
+            return dt.strftime("%Y/%m/%d")
+    except:
+        pass
+    return ""
+def extract_revision_year(text):
+    if not text:
+        return ""
+    m = re.search(r'(20\d{2})', text)
+    return m.group(1) if m else ""
 # =========================
 # 監視対象
 # =========================
@@ -268,7 +313,9 @@ def check_site(target):
                         "出版社": target["name"],
                         "種別": "PDF",
                         "版情報": extract_year(title),
-                        "発刊日": pub_date,
+                        "発刊日（明示）": extract_publish_date_strict(text, url),
+                        "改訂年": extract_revision_year(text),
+                        "最終更新日": extract_last_modified(url),
                         "URL": url
                     })
             return rows
@@ -289,7 +336,9 @@ def check_site(target):
                     "出版社": target["name"],
                     "種別": "Web",
                     "版情報": extract_year(text),
-                    "発刊日": pub_date,
+                    "発刊日（明示）": extract_publish_date_strict(text, url),
+                    "改訂年": extract_revision_year(text),
+                    "最終更新日": extract_last_modified(url),
                     "URL": url
                 })
 
@@ -322,9 +371,18 @@ def main():
 
         # 列不足対応（後方互換）
         required_cols = [
-            "論理ID","正式タイトル","出版社","種別","版情報",
-            "発刊日","URL","ステータス","初回検知日","最終確認日"
-        ]
+                    "論理ID",
+                    "正式タイトル",
+                    "出版社",
+                    "種別",
+                    "発刊日（明示）",
+                    "改訂年",
+                    "最終更新日",
+                    "URL",
+                    "ステータス",
+                    "初回検知日",
+                    "最終確認日"
+                ]
         for col in required_cols:
             if col not in old.columns:
                 old[col] = ""
@@ -379,6 +437,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
