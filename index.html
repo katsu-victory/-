@@ -110,23 +110,41 @@
     </div>
   </section>
 
-  <!-- ================= Table ================= -->
-  <section class="bg-white rounded-3xl shadow border border-gray-200 overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-blue-900 text-white">
+<!-- ================= Table ================= -->
+<section class="bg-white rounded-3xl shadow border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-blue-900 text-white">
         <tr>
-          <th class="px-6 py-4 text-left text-xs font-black">Status</th>
-          <th class="px-6 py-4 text-left text-xs font-black">Publisher</th>
-          <th class="px-6 py-4 text-left text-xs font-black">Pub Date</th>
-          <th class="px-6 py-4 text-left text-xs font-black">Content</th>
-          <th class="px-6 py-4 text-left text-xs font-black">Detected</th>
+          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
+              data-key="ステータス">
+            Status
+          </th>
+
+          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
+              data-key="出版社">
+            Publisher
+          </th>
+
+          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
+              data-key="発刊日">
+            Pub Date
+          </th>
+
+          <th class="px-6 py-4 text-left text-xs font-black">
+            Content
+          </th>
+
+          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
+              data-key="検知日">
+            Detected
+          </th>
         </tr>
-        </thead>
-        <tbody id="tbody" class="divide-y divide-gray-100"></tbody>
-      </table>
-    </div>
-  </section>
+      </thead>
+      <tbody id="tbody" class="divide-y divide-gray-100"></tbody>
+    </table>
+  </div>
+</section>
 
   <!-- ================= Footer ================= -->
   <footer class="mt-10 text-center text-xs text-gray-400 font-bold italic">
@@ -394,6 +412,9 @@ async function loadCsv() {
       "URL": o["URL"] ?? o["url"] ?? "#",
       "検知日": o["初回検知日"] ?? o["検知日"] ?? o["確認日時"] ?? o["Detected"] ?? "-"
     }));
+
+    const csvUpdated = objs[0]?.["CSV更新日時"] ?? "-";
+    el("csvLastModified").textContent = csvUpdated;
 
     // Publisher一覧
     const pubs = [...new Set(state.rows.map(r => r["出版社"]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ja"));
