@@ -438,9 +438,11 @@ function wireEvents() {
 }
 
 // init
-setLoadedAt();
-wireEvents();
-loadCsv();
+document.addEventListener("DOMContentLoaded", () => {
+  setLoadedAt();
+  wireEvents();
+  loadCsv();
+});
 </script>
 </body>
 </html>
