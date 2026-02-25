@@ -352,11 +352,23 @@ function escapeAttr(s) {
 
 async function fetchCsvLastModified() {
   try {
-    const head = await fetch(CSV_PATH, { method: "HEAD", cache: "no-store" });
-    const lm = head.headers.get("last-modified");
-    el("csvLastModified").textContent = lm ? lm : "-";
-  } catch {
-    el("csvLastModified").textContent = "-";
+    const bust = Date.now();
+    const res = await fetch(`${CSV_PATH}?v=${bust}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("CSV fetch failed: " + res.status);
+
+    const text = await res.text();
+    const table = parseCSV(text);
+    const objs = toObjects(table);
+
+    // 1行目のCSV更新日時を優先して表示（無ければ "-"）
+    const v =
+      (objs[0] && (objs[0]["CSV更新日時"] || objs[0]["csv_updated_at"])) || "-";
+
+    el("csvLastModified").textContent = v;
+  } catch (e) {
+    console.error(e);
+    const node = el("csvLastModified");
+    if (node) node.textContent = "-";
   }
 }
 
@@ -378,9 +390,9 @@ async function loadCsv() {
       "ステータス": o["ステータス"] ?? o["Status"] ?? "既知",
       "出版社": o["出版社"] ?? o["Publisher"] ?? "-",
       "発刊日": o["発刊日"] ?? o["Pub Date"] ?? "-",
-      "タイトル内容": o["タイトル内容"] ?? o["内容"] ?? o["GL名"] ?? "-",
+      "タイトル内容": o["正式タイトル"] ?? o["タイトル内容"] ?? o["内容"] ?? o["GL名"] ?? "-",
       "URL": o["URL"] ?? o["url"] ?? "#",
-      "検知日": o["検知日"] ?? o["確認日時"] ?? o["Detected"] ?? "-"
+      "検知日": o["初回検知日"] ?? o["検知日"] ?? o["確認日時"] ?? o["Detected"] ?? "-"
     }));
 
     // Publisher一覧
