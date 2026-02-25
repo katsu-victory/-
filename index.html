@@ -116,34 +116,26 @@
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-blue-900 text-white">
         <tr>
-          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
-              data-key="ステータス">
-            Status
-          </th>
-
-          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
-              data-key="出版社">
-            Publisher
-          </th>
-
-          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
-              data-key="発刊日">
-            Pub Date
-          </th>
-
-          <th class="px-6 py-4 text-left text-xs font-black">
-            Content
-          </th>
-
-          <th class="sortable px-6 py-4 text-left text-xs font-black cursor-pointer"
-              data-key="検知日">
-            Detected
-          </th>
-        </tr>
-      </thead>
-      <tbody id="tbody" class="divide-y divide-gray-100"></tbody>
-    </table>
-  </div>
+         <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="ステータス">
+          ▽ Status
+        </th>
+        <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="出版社">
+          ▽ Publisher
+        </th>
+        <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="発刊日">
+          ▽ Pub Date
+        </th>
+        <th class="px-6 py-4 text-left text-xs font-black">
+          Content
+        </th>
+        <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="検知日">
+          ▽ Detected
+        </th>
+                </tr>
+              </thead>
+              <tbody id="tbody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
 </section>
 
   <!-- ================= Footer ================= -->
@@ -369,33 +361,21 @@ function escapeAttr(s) {
 }
 
 async function fetchCsvLastModified() {
-  const elLM = document.getElementById("csvLastModified");
-  if (!elLM) return;
-
   try {
     const head = await fetch(CSV_PATH, { method: "HEAD", cache: "no-store" });
     const lm = head.headers.get("last-modified");
     if (!lm) {
-      elLM.textContent = "-";
+      el("csvLastModified").textContent = "-";
       return;
     }
 
-    // GMT → JST
-    const d = new Date(lm);
-    const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+    const dt = new Date(lm);
+    const jst = new Date(dt.getTime() + 9 * 60 * 60 * 1000);
 
-    elLM.textContent = jst.toLocaleString("ja-JP", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit"
-    });
-
-  } catch (e) {
-    console.error(e);
-    elLM.textContent = "-";
+    el("csvLastModified").textContent =
+      jst.toISOString().replace("T", " ").slice(0, 19) + " JST";
+  } catch {
+    el("csvLastModified").textContent = "-";
   }
 }
 
