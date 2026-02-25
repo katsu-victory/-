@@ -1,514 +1,184 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>診療ガイドライン新着監視</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>診療ガイドライン新着監視（CSV Viewer）</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-  <style>
-    body {
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-                   Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
-    }
-    th.sortable { cursor: pointer; user-select: none; }
-    th.sortable:hover { opacity: 0.9; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif; }
+  th.sortable { cursor: pointer; }
+  .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
 
-    .badge-new {
-      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-      color: white;
-    }
-    .badge-old {
-      background: #f3f4f6;
-      color: #6b7280;
-      border: 1px solid #e5e7eb;
-    }
-    .badge-pdf {
-      background: #111827;
-      color: white;
-    }
-    .badge-web {
-      background: #2563eb;
-      color: white;
-    }
-  </style>
+  .badge-new { background:#dc2626; color:white; }
+  .badge-old { background:#e5e7eb; color:#374151; }
+  .badge-text { background:#2563eb; color:white; }
+  .badge-meta { background:#7c3aed; color:white; }
+  .badge-pdf  { background:#111827; color:white; }
+  .badge-header { background:#6b7280; color:white; }
+  .badge-unknown { background:#9ca3af; color:white; }
+</style>
 </head>
 
-<body class="bg-gray-100 p-4 md:p-8 text-gray-800">
+<body class="bg-gray-100 p-6">
 <div class="max-w-7xl mx-auto">
 
-  <!-- ================= Header ================= -->
-  <header class="mb-6">
-    <h1 class="text-4xl font-black text-blue-900 tracking-tight">
-      診療ガイドライン新着監視
-    </h1>
-    <p class="mt-1 text-sm text-gray-600 font-semibold">
-      学会・出版社の診療ガイドライン／取扱い規約を自動監視（CSV駆動・HTML固定）
-    </p>
-  </header>
+<header class="mb-6">
+  <h1 class="text-3xl font-black text-blue-900">診療ガイドライン新着監視</h1>
+  <p class="text-sm text-gray-600 font-semibold">
+    update_report.csv を忠実に表示するビューア（HTML固定）
+  </p>
+</header>
 
-  <!-- ================= Summary ================= -->
-  <section class="bg-white rounded-3xl shadow border border-gray-200 p-4 md:p-6 mb-6">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-      <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-        <div class="text-xs font-bold text-red-600">新着</div>
-        <div class="text-2xl font-black text-red-700" id="newCount">-</div>
-      </div>
-      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-        <div class="text-xs font-bold text-gray-600">総件数</div>
-        <div class="text-2xl font-black" id="totalCount">-</div>
-      </div>
-      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-        <div class="text-xs font-bold text-gray-600">表示中</div>
-        <div class="text-2xl font-black" id="shownCount">-</div>
-      </div>
-      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-        <div class="text-xs font-bold text-gray-600">CSV更新</div>
-        <div class="mono text-xs font-bold text-blue-700" id="csvLastModified">-</div>
-      </div>
-      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-        <div class="text-xs font-bold text-gray-600">画面更新</div>
-        <div class="mono text-xs font-bold text-gray-700" id="loadedAt">-</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= Filters ================= -->
-  <section class="bg-white rounded-3xl shadow border border-gray-200 p-4 md:p-6 mb-6">
-    <div class="flex flex-wrap gap-3">
-      <input id="q" placeholder="検索（タイトル・出版社・URL）"
-             class="px-3 py-2 rounded-xl border border-gray-200 w-full md:w-72"/>
-
-      <select id="publisherFilter" class="px-3 py-2 rounded-xl border border-gray-200">
-        <option value="">すべての出版社</option>
-      </select>
-
-      <select id="statusFilter" class="px-3 py-2 rounded-xl border border-gray-200">
-        <option value="">すべて</option>
-        <option value="★新着">★新着のみ</option>
-        <option value="既知">既知のみ</option>
-      </select>
-
-      <select id="limit" class="px-3 py-2 rounded-xl border border-gray-200">
-        <option value="100">100件</option>
-        <option value="200" selected>200件</option>
-        <option value="500">500件</option>
-        <option value="1000000">全件</option>
-      </select>
-
-      <button id="reloadBtn"
-              class="px-4 py-2 rounded-xl bg-blue-900 text-white font-black">
-        CSV再読込
-      </button>
-
-      <button id="resetBtn"
-              class="px-4 py-2 rounded-xl bg-gray-200 text-gray-800 font-black">
-        リセット
-      </button>
-    </div>
-  </section>
-
-<!-- ================= Table ================= -->
-<section class="bg-white rounded-3xl shadow border border-gray-200 overflow-hidden">
-  <div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-blue-900 text-white">
-        <tr>
-         <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="ステータス">
-          ▽ Status
-        </th>
-        <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="出版社">
-          ▽ Publisher
-        </th>
-        <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="発刊日">
-          ▽ Pub Date
-        </th>
-        <th class="px-6 py-4 text-left text-xs font-black">
-          Content
-        </th>
-        <th class="px-6 py-4 text-left text-xs font-black sortable" data-key="検知日">
-          ▽ Detected
-        </th>
-                </tr>
-              </thead>
-              <tbody id="tbody" class="divide-y divide-gray-100"></tbody>
-            </table>
-          </div>
+<section class="bg-white rounded-xl shadow p-4 mb-6 text-sm grid grid-cols-4 gap-4">
+  <div>新着 <span id="newCount" class="font-black text-red-600">-</span></div>
+  <div>総件数 <span id="totalCount" class="font-black">-</span></div>
+  <div>表示中 <span id="shownCount" class="font-black">-</span></div>
+  <div class="mono text-xs">CSV更新 <span id="csvUpdated">-</span></div>
 </section>
 
-  <!-- ================= Footer ================= -->
-  <footer class="mt-10 text-center text-xs text-gray-400 font-bold italic">
-    本ページは update_report.csv を表示するビューアです。<br/>
-    HTMLは固定、CSVのみ GitHub Actions により更新されます。
-  </footer>
-<div style="display:none">
-  <span id="loadStatus"></span>
-</div>
+<section class="bg-white rounded-xl shadow p-4 mb-6 flex gap-3 flex-wrap">
+  <input id="q" class="border rounded px-3 py-2 w-64" placeholder="検索（タイトル・出版社・URL）">
+  <select id="statusFilter" class="border rounded px-3 py-2">
+    <option value="">全ステータス</option>
+    <option value="★新着">★新着</option>
+    <option value="既知">既知</option>
+  </select>
+  <select id="limit" class="border rounded px-3 py-2">
+    <option value="100">100</option>
+    <option value="200" selected>200</option>
+    <option value="1000000">全件</option>
+  </select>
+</section>
+
+<section class="bg-white rounded-xl shadow overflow-x-auto">
+<table class="min-w-full text-sm">
+<thead class="bg-blue-900 text-white">
+<tr>
+  <th class="px-4 py-3">Status</th>
+  <th class="px-4 py-3">出版社</th>
+  <th class="px-4 py-3">発刊日</th>
+  <th class="px-4 py-3">改訂日</th>
+  <th class="px-4 py-3">検知日</th>
+  <th class="px-4 py-3">タイトル / URL</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</section>
+
+<footer class="mt-8 text-xs text-gray-400 text-center font-bold">
+  HTMLは固定・CSVのみ更新されます
+</footer>
+
 </div>
 
 <script>
-/**
- * 仕様:
- * - update_report.csv を fetch して表示（index.htmlは固定）
- * - CSVはUTF-8-SIGでもOK（BOM除去）
- * - 列は最低限: ステータス, 出版社, 発刊日, タイトル内容, URL, 検知日 を想定
- * - ソート、検索、フィルタ、件数制限、再読み込み
- */
-
 const CSV_PATH = "update_report.csv";
+const state = { rows: [] };
 
-const el = (id) => document.getElementById(id);
+const badgeClass = (lvl) => ({
+  text:"badge-text", meta:"badge-meta", pdf:"badge-pdf",
+  header:"badge-header", unknown:"badge-unknown"
+}[lvl] || "badge-unknown");
 
-const state = {
-  rows: [],
-  filtered: [],
-  sortKey: "検知日",
-  sortDir: "desc",
-};
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>(
+{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]
+));}
 
-function setLoadedAt() {
-  el("loadedAt").textContent = new Date().toLocaleString();
-}
-
-function stripBOM(s) {
-  if (!s) return s;
-  return s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s;
-}
-
-// シンプルCSVパーサ（ダブルクォート対応、改行もある程度対応）
-function parseCSV(text) {
-  text = stripBOM(text);
-  const rows = [];
-  let i = 0, field = "", row = [], inQuotes = false;
-
-  while (i < text.length) {
-    const c = text[i];
-
-    if (c === '"') {
-      if (inQuotes && text[i + 1] === '"') {
-        field += '"'; i += 2; continue;
-      }
-      inQuotes = !inQuotes; i++; continue;
-    }
-
-    if (!inQuotes && (c === "," || c === "\n" || c === "\r")) {
-      row.push(field);
-      field = "";
-
-      if (c === ",") { i++; continue; }
-
-      // 改行（\r\n / \n / \r）
-      // \r\nの場合は\nを飛ばす
-      if (c === "\r" && text[i + 1] === "\n") i++;
-
-      // 空行スキップ
-      const isEmptyLine = row.length === 1 && row[0] === "" && field === "";
-      if (!isEmptyLine) rows.push(row);
-      row = [];
-      i++;
-      continue;
-    }
-
-    field += c;
-    i++;
+function parseCSV(text){
+  const rows=[]; let r=[],f="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c=='"'){ if(q && text[i+1]=='"'){f+='"';i++;} else q=!q; }
+    else if(!q && (c==","||c=="\n")){
+      r.push(f); f="";
+      if(c=="\n"){ rows.push(r); r=[]; }
+    } else f+=c;
   }
-  // last
-  row.push(field);
-  if (!(row.length === 1 && row[0] === "")) rows.push(row);
-  return rows;
+  r.push(f); rows.push(r); return rows;
 }
 
-function normalizeHeaders(headers) {
-  // 期待する列名に寄せる（過去互換用）
-  const map = {
-    "内容": "タイトル内容",
-    "GL名": "タイトル内容",
-    "確認日時": "検知日",
-  };
-  return headers.map(h => map[h] || h);
-}
-
-function toObjects(table) {
-  if (!table || table.length < 2) return [];
-  const headers = normalizeHeaders(table[0].map(h => (h || "").trim()));
-  const objects = [];
-
-  for (let r = 1; r < table.length; r++) {
-    const row = table[r];
-    if (!row || row.every(x => (x || "").trim() === "")) continue;
-    const obj = {};
-    for (let c = 0; c < headers.length; c++) {
-      obj[headers[c]] = (row[c] ?? "").trim();
-    }
-    objects.push(obj);
-  }
-  return objects;
-}
-
-function safeDateKey(s) {
-  // "YYYY-MM-DD" or "YYYY/MM/DD" or "-" を想定してソート用の数値化
-  if (!s || s === "-") return 0;
-  const t = s.replaceAll("/", "-");
-  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/) || t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (!m) return 0;
-  const y = Number(m[1]);
-  const mo = Number(m[2]);
-  const d = Number(m[3]);
-  if (!y || !mo || !d) return 0;
-  return y * 10000 + mo * 100 + d;
-}
-
-function sortRows(rows) {
-  const key = state.sortKey;
-  const dir = state.sortDir;
-
-  const sorted = [...rows].sort((a, b) => {
-    const av = (a[key] ?? "").trim();
-    const bv = (b[key] ?? "").trim();
-
-    // 日付系は数値化
-    if (key === "発刊日（明示）" || key === "検知日") {
-      const an = safeDateKey(av);
-      const bn = safeDateKey(bv);
-      return dir === "asc" ? (an - bn) : (bn - an);
-    }
-
-    // 文字列比較
-    const cmp = av.localeCompare(bv, "ja");
-    return dir === "asc" ? cmp : -cmp;
+async function loadCsv(){
+  const res=await fetch(CSV_PATH+"?v="+Date.now(),{cache:"no-store"});
+  const txt=await res.text();
+  const t=parseCSV(txt);
+  const h=t[0];
+  state.rows=t.slice(1).map(r=>{
+    const o={}; h.forEach((k,i)=>o[k]=r[i]||""); return o;
   });
 
-  return sorted;
+  document.getElementById("csvUpdated").textContent =
+    state.rows[0]?.["CSV更新日時"]||"-";
+  apply();
 }
 
-function applyFilters() {
-  const q = (el("q").value || "").trim().toLowerCase();
-  const pub = el("publisherFilter").value;
-  const st = el("statusFilter").value;
-  const lim = Number(el("limit").value || "200");
+function apply(){
+  const q=document.getElementById("q").value.toLowerCase();
+  const st=document.getElementById("statusFilter").value;
+  const lim=+document.getElementById("limit").value;
 
-  let rows = [...state.rows];
-
-  if (pub) rows = rows.filter(r => (r["出版社"] || "") === pub);
-  if (st) rows = rows.filter(r => (r["ステータス"] || "") === st);
-
-  if (q) {
-    rows = rows.filter(r => {
-      const t = (
-        (r["タイトル内容"] || "") + " " +
-        (r["出版社"] || "") + " " +
-        (r["URL"] || "")
-      ).toLowerCase();
-      return t.includes(q);
-    });
-  }
-
-  rows = sortRows(rows);
-
-  const limited = rows.slice(0, lim);
-  state.filtered = limited;
-
-  // counters
-  el("totalCount").textContent = String(state.rows.length);
-  el("shownCount").textContent = String(limited.length);
-  el("newCount").textContent = String(
-    state.rows.filter(r => (r["ステータス"] || "").includes("新着")).length
+  let rows=[...state.rows];
+  if(st) rows=rows.filter(r=>r["ステータス"]===st);
+  if(q) rows=rows.filter(r=>
+    (r["正式タイトル"]+r["出版社"]+r["URL"]).toLowerCase().includes(q)
   );
 
-  renderTable(limited);
+  document.getElementById("totalCount").textContent=state.rows.length;
+  document.getElementById("shownCount").textContent=rows.length;
+  document.getElementById("newCount").textContent=
+    state.rows.filter(r=>r["ステータス"].includes("新着")).length;
 
-  // ===============================
-  // ▼ 並び替えインジケータ更新（ここ！）
-  // ===============================
-  document.querySelectorAll("th.sortable").forEach(th => {
-    const key = th.getAttribute("data-key");
-    if (!key) return;
+  render(rows.slice(0,lim));
+}
 
-    let label = th.textContent.replace(/[▲▼▽]/g, "").trim();
+function render(rows){
+  const tb=document.getElementById("tbody"); tb.innerHTML="";
+  rows.forEach(r=>{
+    tb.insertAdjacentHTML("beforeend",`
+<tr class="border-t hover:bg-blue-50">
+<td class="px-4 py-2">
+  <span class="px-2 py-1 rounded text-xs font-black ${r["ステータス"].includes("新着")?"badge-new":"badge-old"}">
+    ${esc(r["ステータス"])}
+  </span>
+</td>
+<td class="px-4 py-2 font-bold">${esc(r["出版社"])}</td>
 
-    if (key === state.sortKey) {
-      label = (state.sortDir === "asc" ? "▲ " : "▼ ") + label;
-    } else {
-      label = "▽ " + label;
-    }
-    th.textContent = label;
+<td class="px-4 py-2 mono">
+  ${esc(r["発刊日"]||"-")}
+  <span class="ml-1 px-1 rounded text-[10px] ${badgeClass(r["発刊日_level"])}"
+    title="${esc(r["発刊日_evidence"])}">
+    ${esc(r["発刊日_level"])}
+  </span>
+</td>
+
+<td class="px-4 py-2 mono">
+  ${esc(r["改訂日"]||"-")}
+  <span class="ml-1 px-1 rounded text-[10px] ${badgeClass(r["改訂日_level"])}"
+    title="${esc(r["改訂日_evidence"])}">
+    ${esc(r["改訂日_level"])}
+  </span>
+</td>
+
+<td class="px-4 py-2 mono">${esc(r["検知日"])}</td>
+
+<td class="px-4 py-2">
+  <a href="${esc(r["URL"])}" target="_blank" class="text-blue-700 font-bold">
+    ${esc(r["正式タイトル"])}
+  </a>
+  <div class="mono text-xs text-gray-400 break-all">${esc(r["URL"])}</div>
+</td>
+</tr>`);
   });
 }
 
-function displayPubDate(r) {
-  // ① 明示日付があればそれを優先
-  if (r["発刊日（明示）"]) return r["発刊日（明示）"];
-
-  // ② 年しかない場合
-  if (r["改訂年"]) return `改訂 ${r["改訂年"]}年`;
-
-  // ③ PDF更新日など参考情報
-  if (r["最終更新日"]) return `更新 ${r["最終更新日"]}`;
-
-  return "-";
-}
-  
-function badgeClass(status) {
-  return (status || "").includes("新着") ? "badge-new" : "badge-old";
-}
-
-function renderTable(rows) {
-  const tbody = el("tbody");
-  tbody.innerHTML = "";
-
-  for (const r of rows) {
-    const status = r["ステータス"] || "既知";
-    const publisher = r["出版社"] || "-";
-    const pubDate = displayPubDate(r);
-    const title = r["タイトル内容"] || "-";
-    const url = r["URL"] || "#";
-    const detect = r["検知日"] || "-";
-
-    const tr = document.createElement("tr");
-    tr.className = "hover:bg-blue-50 transition-all";
-
-    tr.innerHTML = `
-      <td class="px-6 py-4 whitespace-nowrap">
-        <span class="px-3 py-1.5 rounded-full text-[10px] font-black ${badgeClass(status)}">${escapeHtml(status)}</span>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm font-black text-gray-700">${escapeHtml(publisher)}</td>
-      <td class="px-6 py-4 whitespace-nowrap text-sm mono font-bold text-blue-800">${escapeHtml(pubDate)}</td>
-      <td class="px-6 py-4 text-sm leading-relaxed">
-        <a href="${escapeAttr(url)}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-900 font-bold border-b border-transparent hover:border-blue-900 pb-0.5 transition-all">
-          ${escapeHtml(title)}
-        </a>
-        <div class="mt-1 text-xs text-gray-400 break-all mono">${escapeHtml(url)}</div>
-      </td>
-      <td class="px-6 py-4 whitespace-nowrap text-xs mono text-gray-500">${escapeHtml(detect)}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-}
-
-function escapeHtml(s) {
-  return String(s ?? "").replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-  }[c]));
-}
-function escapeAttr(s) {
-  return String(s ?? "").replace(/"/g, "&quot;");
-}
-
-async function fetchCsvLastModified() {
-  try {
-    const head = await fetch(CSV_PATH, { method: "HEAD", cache: "no-store" });
-    const lm = head.headers.get("last-modified");
-    if (!lm) {
-      el("csvLastModified").textContent = "-";
-      return;
-    }
-
-    const dt = new Date(lm);
-    const jst = new Date(dt.getTime() + 9 * 60 * 60 * 1000);
-
-    el("csvLastModified").textContent =
-      jst.toISOString().replace("T", " ").slice(0, 19) + " JST";
-  } catch {
-    el("csvLastModified").textContent = "-";
-  }
-}
-
-async function loadCsv() {
-  el("loadStatus").textContent = "読み込み中…";
-  try {
-    // キャッシュ回避（Pagesの強キャッシュ対策）
-    const bust = Date.now();
-    const res = await fetch(`${CSV_PATH}?v=${bust}`, { cache: "no-store" });
-    if (!res.ok) throw new Error("CSV fetch failed: " + res.status);
-    const text = await res.text();
-
-    const table = parseCSV(text);
-    const objs = toObjects(table);
-
-    // 必須列がない場合の保険
-    // （古いCSV列名でもなるべく見えるようにする）
-    state.rows = objs.map(o => ({
-      "ステータス": o["ステータス"] ?? o["Status"] ?? "既知",
-      "出版社": o["出版社"] ?? o["Publisher"] ?? "-",
-      "発刊日（明示）": o["発刊日（明示）"] ?? "",
-      "改訂年": o["改訂年"] ?? "",
-      "最終更新日": o["最終更新日"] ?? "",
-      "タイトル内容": o["正式タイトル"] ?? o["タイトル内容"] ?? o["内容"] ?? o["GL名"] ?? "-",
-      "URL": o["URL"] ?? o["url"] ?? "#",
-      "検知日": o["初回検知日"] ?? o["検知日"] ?? o["確認日時"] ?? o["Detected"] ?? "-"
-    }));
-
-    const csvUpdated = objs[0]?.["CSV更新日時"] ?? "-";
-    el("csvLastModified").textContent = csvUpdated;
-
-    // Publisher一覧
-    const pubs = [...new Set(state.rows.map(r => r["出版社"]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ja"));
-    const sel = el("publisherFilter");
-    const current = sel.value;
-    sel.innerHTML = `<option value="">すべて</option>` + pubs.map(p => `<option value="${escapeAttr(p)}">${escapeHtml(p)}</option>`).join("");
-    sel.value = pubs.includes(current) ? current : "";
-
-    el("loadStatus").textContent = "OK";
-    await fetchCsvLastModified();
-    applyFilters();
-  } catch (e) {
-    console.error(e);
-    el("loadStatus").textContent = "エラー（CSVが見つからない/読めない）";
-    el("tbody").innerHTML = `
-      <tr>
-        <td class="px-6 py-6 text-sm text-red-600 font-bold" colspan="5">
-          update_report.csv を読み込めませんでした。<br>
-          ・index.html と update_report.csv が同じ階層にあるか<br>
-          ・GitHub Pages の設定が / (root) になっているか<br>
-          ・Actions が update_report.csv を commit しているか<br>
-        </td>
-      </tr>`;
-  }
-}
-
-// UI events
-function wireEvents() {
-  el("q").addEventListener("input", () => applyFilters());
-  el("publisherFilter").addEventListener("change", () => applyFilters());
-  el("statusFilter").addEventListener("change", () => applyFilters());
-  el("limit").addEventListener("change", () => applyFilters());
-
-  el("reloadBtn").addEventListener("click", async () => {
-    await loadCsv();
-  });
-
-  el("resetBtn").addEventListener("click", async () => {
-    el("q").value = "";
-    el("publisherFilter").value = "";
-    el("statusFilter").value = "";
-    el("limit").value = "200";
-    applyFilters();
-  });
-
-  // sorting
-  document.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      const key = th.getAttribute("data-key");
-      if (!key) return;
-      if (state.sortKey === key) {
-        state.sortDir = (state.sortDir === "asc") ? "desc" : "asc";
-      } else {
-        state.sortKey = key;
-        state.sortDir = (key === "検知日") ? "desc" : "asc";
-      }
-      applyFilters();
-    });
-  });
-}
-
-// init
-document.addEventListener("DOMContentLoaded", () => {
-  setLoadedAt();
-  wireEvents();
-  loadCsv();
+["q","statusFilter","limit"].forEach(id=>{
+  document.getElementById(id).addEventListener("input",apply);
 });
+
+loadCsv();
 </script>
 </body>
 </html>
