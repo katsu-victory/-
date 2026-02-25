@@ -31,9 +31,8 @@ def normalize_title(title):
     return t.strip()
 
 def extract_year(text):
-    m = re.search(r'(20\d{2})', text)
-    return m.group(1) if m else "-"
-def extract_year(title):
+    if not text:
+        return "-"
     m = re.search(r'(20\d{2})', text)
     return m.group(1) if m else "-"
 def extract_publish_date(text=None, url=None):
@@ -261,14 +260,15 @@ def check_site(target):
                     url = urljoin(target["url"], href) if href else target["url"]
                     norm = normalize_title(title)
 
+                    pub_date = extract_publish_date(title, url)
+
                     rows.append({
                         "論理ID": f"{target['publisher_key']}_{norm}",
                         "正式タイトル": title,
                         "出版社": target["name"],
                         "種別": "PDF",
                         "版情報": extract_year(title),
-                        date = extract_publish_date(title, url)                        
-                        "発刊日": date,
+                        "発刊日": pub_date,
                         "URL": url
                     })
             return rows
@@ -281,14 +281,15 @@ def check_site(target):
                 url = urljoin(target["url"], href) if href else target["url"]
                 norm = normalize_title(text)
 
+                pub_date = extract_publish_date(text, url)
+
                 rows.append({
                     "論理ID": f"{target['publisher_key']}_{norm}",
                     "正式タイトル": text,
                     "出版社": target["name"],
                     "種別": "Web",
                     "版情報": extract_year(text),
-                    date = extract_publish_date(text, url)                    
-                    "発刊日": date,
+                    "発刊日": pub_date,
                     "URL": url
                 })
 
@@ -378,6 +379,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
