@@ -285,6 +285,7 @@ def main():
 
     # ---------- 出力 ----------
     final_df = merged.reset_index(drop=True)
+    final_df["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S JST")
     final_df = final_df.sort_values(["出版社","論理ID"])
     final_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
 
@@ -292,3 +293,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
