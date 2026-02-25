@@ -226,49 +226,69 @@ def check_site(target):
     return rows
 
 # =========================
-# メイン
+# メイン（完全修正版）
 # =========================
 
 def main():
-    all_rows = []
+    print("=== Collecting current data ===")
+
+    current_rows = []
     for t in TARGETS:
         print(f"Checking {t['name']}")
-        all_rows.extend(check_site(t))
+        current_rows.extend(check_site(t))
 
+    current_df = pd.DataFrame(current_rows)
+
+    if current_df.empty:
+        print("No data collected today.")
+        return
+
+    # ---------- 旧CSV読み込み（安全版） ----------
     if os.path.exists(REPORT_FILE):
         old = pd.read_csv(REPORT_FILE)
+
+        # 列不足対応（後方互換）
+        required_cols = [
+            "論理ID","正式タイトル","出版社","種別","版情報",
+            "発刊日","URL","ステータス","初回検知日","最終確認日"
+        ]
+        for col in required_cols:
+            if col not in old.columns:
+                old[col] = ""
     else:
         old = pd.DataFrame(columns=[
             "論理ID","正式タイトル","出版社","種別","版情報",
             "発刊日","URL","ステータス","初回検知日","最終確認日"
         ])
 
-    known = set(old["論理ID"].astype(str))
-    rows = []
+    # ---------- マスター統合 ----------
+    old = old.set_index("論理ID", drop=False)
+    current_df = current_df.set_index("論理ID", drop=False)
 
-    for r in all_rows:
-        lid = r["論理ID"]
-        if lid in known:
-            prev = old[old["論理ID"] == lid].iloc[0]
-            status = "既知"
-            first = prev["初回検知日"]
+    merged = old.copy()
+
+    for lid, row in current_df.iterrows():
+
+        if lid in merged.index:
+            # 既知
+            merged.loc[lid, ["正式タイトル","出版社","種別","版情報","発刊日","URL"]] = \
+                row[["正式タイトル","出版社","種別","版情報","発刊日","URL"]]
+            merged.loc[lid, "ステータス"] = "既知"
+            merged.loc[lid, "最終確認日"] = TODAY
         else:
-            status = "★新着"
-            first = TODAY
+            # 新規
+            new_row = row.to_dict()
+            new_row["ステータス"] = "★新着"
+            new_row["初回検知日"] = TODAY
+            new_row["最終確認日"] = TODAY
+            merged.loc[lid] = new_row
 
-        rows.append({
-            **r,
-            "ステータス": status,
-            "初回検知日": first,
-            "最終確認日": TODAY
-        })
+    # ---------- 出力 ----------
+    final_df = merged.reset_index(drop=True)
+    final_df = final_df.sort_values(["出版社","論理ID"])
+    final_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
 
-    df = pd.DataFrame(rows)
-    df = df.drop_duplicates(subset=["論理ID"], keep="first")
-    df = df.sort_values(["出版社","論理ID"])
-    df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
-
-    print("Saved update_report.csv")
+    print("Saved update_report.csv (FULL MASTER)")
 
 if __name__ == "__main__":
     main()
