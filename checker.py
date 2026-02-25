@@ -26,6 +26,7 @@ def normalize_title(title):
     t = title.lower()
     t = re.sub(r'\d{4}', '', t)
     t = re.sub(r'(年版|改訂|版|ver\.?)', '', t)
+    t = re.sub(r'(について|概要|解説|about)', '', t)
     t = re.sub(r'[^\wぁ-んァ-ン一-龥]', '', t)
     return t.strip()
 
@@ -282,15 +283,18 @@ def main():
             new_row["初回検知日"] = TODAY
             new_row["最終確認日"] = TODAY
             merged.loc[lid] = new_row
-
+            
     # ---------- 出力 ----------
     final_df = merged.reset_index(drop=True)
     final_df["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S JST")
     final_df = final_df.sort_values(["出版社","論理ID"])
     final_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
+    final_df = (final_df.sort_values(["論理ID", "URL"]).groupby("論理ID", as_index=False).first()
+)
 
     print("Saved update_report.csv (FULL MASTER)")
 
 if __name__ == "__main__":
     main()
+
 
