@@ -5,120 +5,132 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>診療ガイドライン新着監視</title>
 
-  <!-- Tailwind（見た目だけ。不要なら削除OK） -->
   <script src="https://cdn.tailwindcss.com"></script>
 
   <style>
-    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; }
+    body {
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+                   Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+    }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { opacity: 0.9; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .badge-new { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); color: white; }
-    .badge-old { background: #f3f4f6; color: #6b7280; border: 1px solid #e5e7eb; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+    .badge-new {
+      background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+      color: white;
+    }
+    .badge-old {
+      background: #f3f4f6;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+    }
+    .badge-pdf {
+      background: #111827;
+      color: white;
+    }
+    .badge-web {
+      background: #2563eb;
+      color: white;
+    }
   </style>
 </head>
 
 <body class="bg-gray-100 p-4 md:p-8 text-gray-800">
-  <div class="max-w-7xl mx-auto">
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-      <div>
-        <h1 class="text-3xl md:text-4xl font-black text-blue-900 tracking-tight">診療ガイドライン新着監視</h1>
-        <p class="text-gray-500 font-semibold mt-1 text-sm">update_report.csv を読み込んで表示（index.html は固定）</p>
+<div class="max-w-7xl mx-auto">
+
+  <!-- ================= Header ================= -->
+  <header class="mb-6">
+    <h1 class="text-4xl font-black text-blue-900 tracking-tight">
+      診療ガイドライン新着監視
+    </h1>
+    <p class="mt-1 text-sm text-gray-600 font-semibold">
+      学会・出版社の診療ガイドライン／取扱い規約を自動監視（CSV駆動・HTML固定）
+    </p>
+  </header>
+
+  <!-- ================= Summary ================= -->
+  <section class="bg-white rounded-3xl shadow border border-gray-200 p-4 md:p-6 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <div class="text-xs font-bold text-red-600">新着</div>
+        <div class="text-2xl font-black text-red-700" id="newCount">-</div>
       </div>
-
-      <div class="bg-white px-4 py-3 rounded-2xl shadow border border-gray-200 w-full md:w-auto">
-        <div class="text-xs text-gray-500 font-bold">ページ読み込み時刻（ローカル）</div>
-        <div class="mono text-sm font-bold text-blue-700" id="loadedAt">-</div>
-        <div class="mt-2 text-xs text-gray-500 font-bold">CSV 更新日時（Last-Modified）</div>
-        <div class="mono text-sm font-bold text-blue-700" id="csvLastModified">-</div>
+      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+        <div class="text-xs font-bold text-gray-600">総件数</div>
+        <div class="text-2xl font-black" id="totalCount">-</div>
       </div>
-    </header>
-
-    <section class="bg-white rounded-3xl shadow border border-gray-200 p-4 md:p-6 mb-6">
-      <div class="flex flex-col md:flex-row gap-3 md:items-end md:justify-between">
-        <div class="flex flex-col md:flex-row gap-3 w-full">
-          <div class="w-full md:w-72">
-            <label class="text-xs font-bold text-gray-600">検索（タイトル/出版社/URL）</label>
-            <input id="q" class="w-full mt-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                   placeholder="例：肺癌 / 2025 / 泌尿器 / 金原" />
-          </div>
-
-          <div class="w-full md:w-56">
-            <label class="text-xs font-bold text-gray-600">出版社フィルタ</label>
-            <select id="publisherFilter" class="w-full mt-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200">
-              <option value="">すべて</option>
-            </select>
-          </div>
-
-          <div class="w-full md:w-44">
-            <label class="text-xs font-bold text-gray-600">ステータス</label>
-            <select id="statusFilter" class="w-full mt-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200">
-              <option value="">すべて</option>
-              <option value="★新着">★新着</option>
-              <option value="既知">既知</option>
-            </select>
-          </div>
-
-          <div class="w-full md:w-44">
-            <label class="text-xs font-bold text-gray-600">表示件数</label>
-            <select id="limit" class="w-full mt-1 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200">
-              <option value="100">100</option>
-              <option value="200" selected>200</option>
-              <option value="500">500</option>
-              <option value="1000000">全件</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex gap-2">
-          <button id="reloadBtn" class="px-4 py-2 rounded-xl bg-blue-900 text-white font-black shadow hover:opacity-95">
-            CSV再読み込み
-          </button>
-          <button id="resetBtn" class="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-black border border-gray-200 hover:bg-gray-200">
-            条件リセット
-          </button>
-        </div>
+      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+        <div class="text-xs font-bold text-gray-600">表示中</div>
+        <div class="text-2xl font-black" id="shownCount">-</div>
       </div>
-
-      <div class="mt-4 flex flex-wrap gap-3 text-sm">
-        <div class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-          総件数：<span class="font-black" id="totalCount">-</span>
-        </div>
-        <div class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-          表示件数：<span class="font-black" id="shownCount">-</span>
-        </div>
-        <div class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-          新着件数：<span class="font-black text-red-600" id="newCount">-</span>
-        </div>
-        <div class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-          読み込み：<span class="font-black" id="loadStatus">-</span>
-        </div>
+      <div class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+        <div class="text-xs font-bold text-gray-600">CSV更新</div>
+        <div class="mono text-xs font-bold text-blue-700" id="csvLastModified">-</div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="bg-white rounded-3xl shadow border border-gray-200 overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200" id="tbl">
-          <thead>
-            <tr class="bg-blue-900 text-white">
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-tight sortable" data-key="ステータス">Status</th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-tight sortable" data-key="出版社">Publisher</th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-tight sortable" data-key="発刊日">Pub Date</th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-tight">Content Title</th>
-              <th class="px-6 py-4 text-left text-xs font-black uppercase tracking-tight sortable" data-key="検知日">Detected</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100" id="tbody">
-            <!-- rows -->
-          </tbody>
-        </table>
-      </div>
-    </section>
+  <!-- ================= Filters ================= -->
+  <section class="bg-white rounded-3xl shadow border border-gray-200 p-4 md:p-6 mb-6">
+    <div class="flex flex-wrap gap-3">
+      <input id="q" placeholder="検索（タイトル・出版社・URL）"
+             class="px-3 py-2 rounded-xl border border-gray-200 w-full md:w-72"/>
 
-    <footer class="mt-10 text-center text-gray-400 text-xs font-bold italic">
-      &copy; 2026 診療ガイドライン更新監視システム（index.html固定 / CSVから描画）
-    </footer>
-  </div>
+      <select id="publisherFilter" class="px-3 py-2 rounded-xl border border-gray-200">
+        <option value="">すべての出版社</option>
+      </select>
+
+      <select id="statusFilter" class="px-3 py-2 rounded-xl border border-gray-200">
+        <option value="">すべて</option>
+        <option value="★新着">★新着のみ</option>
+        <option value="既知">既知のみ</option>
+      </select>
+
+      <select id="limit" class="px-3 py-2 rounded-xl border border-gray-200">
+        <option value="100">100件</option>
+        <option value="200" selected>200件</option>
+        <option value="500">500件</option>
+        <option value="1000000">全件</option>
+      </select>
+
+      <button id="reloadBtn"
+              class="px-4 py-2 rounded-xl bg-blue-900 text-white font-black">
+        CSV再読込
+      </button>
+
+      <button id="resetBtn"
+              class="px-4 py-2 rounded-xl bg-gray-200 text-gray-800 font-black">
+        リセット
+      </button>
+    </div>
+  </section>
+
+  <!-- ================= Table ================= -->
+  <section class="bg-white rounded-3xl shadow border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-blue-900 text-white">
+        <tr>
+          <th class="px-6 py-4 text-left text-xs font-black">Status</th>
+          <th class="px-6 py-4 text-left text-xs font-black">Publisher</th>
+          <th class="px-6 py-4 text-left text-xs font-black">Pub Date</th>
+          <th class="px-6 py-4 text-left text-xs font-black">Content</th>
+          <th class="px-6 py-4 text-left text-xs font-black">Detected</th>
+        </tr>
+        </thead>
+        <tbody id="tbody" class="divide-y divide-gray-100"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= Footer ================= -->
+  <footer class="mt-10 text-center text-xs text-gray-400 font-bold italic">
+    本ページは update_report.csv を表示するビューアです。<br/>
+    HTMLは固定、CSVのみ GitHub Actions により更新されます。
+  </footer>
+
+</div>
 
 <script>
 /**
