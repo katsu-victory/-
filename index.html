@@ -269,7 +269,7 @@ function sortRows(rows) {
     const bv = (b[key] ?? "").trim();
 
     // 日付系は数値化
-    if (key === "発刊日" || key === "検知日") {
+    if (key === "発刊日（明示）" || key === "検知日") {
       const an = safeDateKey(av);
       const bn = safeDateKey(bv);
       return dir === "asc" ? (an - bn) : (bn - an);
@@ -337,6 +337,19 @@ function applyFilters() {
   });
 }
 
+function displayPubDate(r) {
+  // ① 明示日付があればそれを優先
+  if (r["発刊日（明示）"]) return r["発刊日（明示）"];
+
+  // ② 年しかない場合
+  if (r["改訂年"]) return `改訂 ${r["改訂年"]}年`;
+
+  // ③ PDF更新日など参考情報
+  if (r["最終更新日"]) return `更新 ${r["最終更新日"]}`;
+
+  return "-";
+}
+  
 function badgeClass(status) {
   return (status || "").includes("新着") ? "badge-new" : "badge-old";
 }
@@ -348,7 +361,7 @@ function renderTable(rows) {
   for (const r of rows) {
     const status = r["ステータス"] || "既知";
     const publisher = r["出版社"] || "-";
-    const pubDate = r["発刊日"] || "-";
+    const pubDate = displayPubDate(r);
     const title = r["タイトル内容"] || "-";
     const url = r["URL"] || "#";
     const detect = r["検知日"] || "-";
@@ -419,7 +432,9 @@ async function loadCsv() {
     state.rows = objs.map(o => ({
       "ステータス": o["ステータス"] ?? o["Status"] ?? "既知",
       "出版社": o["出版社"] ?? o["Publisher"] ?? "-",
-      "発刊日": o["発刊日"] ?? o["Pub Date"] ?? "-",
+      "発刊日（明示）": o["発刊日（明示）"] ?? "",
+      "改訂年": o["改訂年"] ?? "",
+      "最終更新日": o["最終更新日"] ?? "",
       "タイトル内容": o["正式タイトル"] ?? o["タイトル内容"] ?? o["内容"] ?? o["GL名"] ?? "-",
       "URL": o["URL"] ?? o["url"] ?? "#",
       "検知日": o["初回検知日"] ?? o["検知日"] ?? o["確認日時"] ?? o["Detected"] ?? "-"
