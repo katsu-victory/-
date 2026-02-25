@@ -296,7 +296,11 @@ function applyFilters() {
 
   if (q) {
     rows = rows.filter(r => {
-      const t = ((r["タイトル内容"] || "") + " " + (r["出版社"] || "") + " " + (r["URL"] || "")).toLowerCase();
+      const t = (
+        (r["タイトル内容"] || "") + " " +
+        (r["出版社"] || "") + " " +
+        (r["URL"] || "")
+      ).toLowerCase();
       return t.includes(q);
     });
   }
@@ -309,9 +313,28 @@ function applyFilters() {
   // counters
   el("totalCount").textContent = String(state.rows.length);
   el("shownCount").textContent = String(limited.length);
-  el("newCount").textContent = String(state.rows.filter(r => (r["ステータス"] || "").includes("新着")).length);
+  el("newCount").textContent = String(
+    state.rows.filter(r => (r["ステータス"] || "").includes("新着")).length
+  );
 
   renderTable(limited);
+
+  // ===============================
+  // ▼ 並び替えインジケータ更新（ここ！）
+  // ===============================
+  document.querySelectorAll("th.sortable").forEach(th => {
+    const key = th.getAttribute("data-key");
+    if (!key) return;
+
+    let label = th.textContent.replace(/[▲▼▽]/g, "").trim();
+
+    if (key === state.sortKey) {
+      label = (state.sortDir === "asc" ? "▲ " : "▼ ") + label;
+    } else {
+      label = "▽ " + label;
+    }
+    th.textContent = label;
+  });
 }
 
 function badgeClass(status) {
