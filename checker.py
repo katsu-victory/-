@@ -589,20 +589,68 @@ def main():
         print("No data collected.")
         return
 
+    # 新規取得データをDataFrameに変換
     current = _ensure(pd.DataFrame(rows))
 
+    # 既存のレポートを読み込む（存在しない場合は空）
     if os.path.exists(REPORT_FILE):
         old = _ensure(pd.read_csv(REPORT_FILE, dtype=str).fillna(""))
     else:
         old = pd.DataFrame(columns=CSV_COLUMNS)
 
-    merged = pd.concat([old, current], ignore_index=True)
-    merged = merged.drop_duplicates(subset="論理ID", keep="last")
+    # レポート更新のために、論理ID単位で旧データと新規データをマージする。
+    # concat で旧→新の順に結合し、同一IDであれば新規データを優先して選択する。
+    combined = pd.concat([old, current], ignore_index=True, sort=False)
 
-    merged["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S %z")
-    merged = merged.sort_values(["出版社", "論理ID"])
+    final_rows = []
+    today_dt = datetime.strptime(TODAY, "%Y-%m-%d")
 
-    merged.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
+    for logical_id, group in combined.groupby("論理ID", sort=False):
+        # 最新行を選択：検知日が今日の行があればそれを使用、なければ最後の行を使用
+        idx_new = group.index[group["検知日"] == TODAY]
+        if len(idx_new) > 0:
+            row = group.loc[idx_new[0]].copy()
+        else:
+            row = group.iloc[-1].copy()
+
+        # 初回検知日を保持（旧レポートに存在する場合はそれを引き継ぐ）
+        # group 内には旧データと新規データの両方が存在する可能性がある。
+        first_detect = group["初回検知日"].dropna().iloc[0] if any(group["初回検知日"].astype(str).str.strip()) else ""
+        # 初回検知日がない場合（初登場）は今日の日付を入れる
+        if not first_detect:
+            row["初回検知日"] = TODAY
+        else:
+            row["初回検知日"] = first_detect
+
+        # 最終確認日は今回の実行日
+        row["最終確認日"] = TODAY
+
+        # ステータス判定：発刊日がある場合にその日付から7日以内を新着とする
+        status = "既知"
+        pub_date_str = str(row["発刊日"]).strip() if not pd.isna(row["発刊日"]) else ""
+        try:
+            if pub_date_str:
+                pub_dt = datetime.strptime(pub_date_str, "%Y-%m-%d")
+                delta_days = (today_dt - pub_dt).days
+                if 0 <= delta_days <= 7:
+                    status = "★新着"
+            else:
+                # 発刊日が不明でも今回初登場の場合は新着扱い
+                if not first_detect or first_detect == TODAY:
+                    status = "★新着"
+        except Exception:
+            # 日付解析に失敗した場合は既知とする
+            pass
+
+        row["ステータス"] = status
+
+        # CSV更新日時は後で全体に一括設定する
+        final_rows.append(row)
+
+    updated_df = _ensure(pd.DataFrame(final_rows))
+    updated_df["CSV更新日時"] = datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S %z")
+    updated_df = updated_df.sort_values(["出版社", "論理ID"])
+    updated_df.to_csv(REPORT_FILE, index=False, encoding="utf-8-sig")
     print(f"Saved {REPORT_FILE}")
 
 if __name__ == "__main__":
