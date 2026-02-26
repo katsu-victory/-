@@ -48,6 +48,10 @@
     <option value="★新着">★新着</option>
     <option value="既知">既知</option>
   </select>
+  <!-- 新規追加: 出版社フィルタ -->
+  <select id="publisherFilter" class="border rounded px-3 py-2">
+    <option value="">全出版社</option>
+  </select>
   <select id="limit" class="border rounded px-3 py-2">
     <option value="100">100</option>
     <option value="200" selected>200</option>
@@ -184,11 +188,13 @@ function sortRows(rows){
 function apply(){
   const q = document.getElementById("q").value.toLowerCase();
   const st = document.getElementById("statusFilter").value;
+  const pub = document.getElementById("publisherFilter").value;
   const lim = +document.getElementById("limit").value;
 
   let rows = [...state.rows];
 
   if(st) rows = rows.filter(r => (r["ステータス"] || "") === st);
+  if(pub) rows = rows.filter(r => (r["出版社"] || "") === pub);
   if(q) rows = rows.filter(r =>
     ((r["正式タイトル"]||"") + (r["出版社"]||"") + (r["URL"]||""))
       .toLowerCase().includes(q)
@@ -212,8 +218,8 @@ function render(rows){
     const status = (r["ステータス"] || "");
     tb.insertAdjacentHTML("beforeend", `
 <tr class="border-t hover:bg-blue-50">
-  <td class="px-4 py-2">
-    <span class="px-2 py-1 rounded text-xs font-black ${status.includes("新着") ? "badge-new" : "badge-old"}">
+  <td class="px-4 py-2 align-top whitespace-nowrap">
+    <span class="inline-block px-2 py-1 rounded text-xs font-black ${status.includes("新着") ? "badge-new" : "badge-old"}">
       ${esc(status || "-")}
     </span>
   </td>
@@ -267,6 +273,19 @@ async function loadCsv(){
   document.getElementById("csvUpdated").textContent =
     state.rows[0]?.["CSV更新日時"] || "-";
 
+  // Populate publisher filter options
+  const pubSel = document.getElementById("publisherFilter");
+  // Clear existing options except the default
+  while(pubSel.options.length > 1) pubSel.remove(1);
+  const pubs = Array.from(new Set(state.rows.map(r => r["出版社"]).filter(p => p)));
+  pubs.sort((a, b) => a.localeCompare(b, "ja"));
+  pubs.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    pubSel.appendChild(opt);
+  });
+
   // init sort dropdowns
   document.getElementById("sortKey").value = state.sortKey;
   document.getElementById("sortDir").value = state.sortDir;
@@ -274,7 +293,7 @@ async function loadCsv(){
   apply();
 }
 
-["q","statusFilter","limit","sortKey","sortDir"].forEach(id => {
+["q","statusFilter","publisherFilter","limit","sortKey","sortDir"].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener("input", () => {
     if(id === "sortKey") state.sortKey = el.value;
