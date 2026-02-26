@@ -69,22 +69,76 @@ def _is_bad(s: str) -> bool:
     s = s.lower()
     return any(b in s for b in BAD_CONTEXT)
 
-def _pick_labeled_date(lines: List[str], labels: List[str], window: int = 1) -> Optional[Tuple[str, str]]:
+def _pick_labeled_date(
+    lines: List[str],
+    labels: List[str],
+    window: int = 1,
+    *,
+    pick_oldest: bool = False,
+    pick_latest: bool = False,
+) -> Optional[Tuple[str, str]]:
+    """
+    検索対象行とその前後の行からラベル付き日付を抽出し、
+    指定された戦略に従って最適な日付を返す。
+
+    変更点:
+    - 複数候補がある場合、発行日は最古のものを採用し、改訂日は最新のものを採用する。
+    - BAD_CONTEXT を含む行は無視する。
+    - 同じ行に日付がない場合は、前後の行も参照する。
+
+    引数:
+        lines: テキスト行リスト
+        labels: 検索キーワードリスト
+        window: ラベル行の前後何行までを見るか
+        pick_oldest: True の場合は最も古い日付を選ぶ
+        pick_latest: True の場合は最新の日付を選ぶ
+
+    戻り値:
+        (日付文字列, 証拠文字列) or None
+    """
+    candidates: List[Tuple[str, str]] = []
     for i, line in enumerate(lines):
         if _is_bad(line):
             continue
         if not _has_any(line, labels):
             continue
-        ds = _find_dates(line)
-        if ds:
-            return ds[0], line[:200]
+        # 自行の候補日付
+        for d in _find_dates(line):
+            candidates.append((d, line[:200]))
+        # 前後の行にも日付があるか確認。ただし別のラベル行を避ける。
         for j in range(max(0, i - window), min(len(lines), i + window + 1)):
             if j == i:
                 continue
-            ds2 = _find_dates(lines[j])
-            if ds2:
-                return ds2[0], f"{line} / {lines[j]}"[:200]
-    return None
+            neighbour = lines[j]
+            # 他のラベルが含まれている場合は飛ばす（発行と改訂を混同しない）
+            if _has_any(neighbour, PUB_LABELS) or _has_any(neighbour, REV_LABELS):
+                continue
+            for d2 in _find_dates(neighbour):
+                candidates.append((d2, f"{line} / {neighbour}"[:200]))
+    if not candidates:
+        return None
+    # 重複排除
+    unique = {}
+    for d, ctx in candidates:
+        # d がすでにある場合はより短いコンテキストを保持
+        if d not in unique or len(ctx) < len(unique[d]):
+            unique[d] = ctx
+    # 日付を昇順にソート
+    def to_dt(d: str) -> datetime:
+        try:
+            return datetime.strptime(d, "%Y-%m-%d")
+        except Exception:
+            return datetime.max
+    items = sorted(unique.items(), key=lambda x: to_dt(x[0]))
+    # pick_oldest なら最古、pick_latest なら最新、それ以外は先頭を返す
+    if pick_oldest:
+        d, ctx = items[0]
+        return d, ctx
+    if pick_latest:
+        d, ctx = items[-1]
+        return d, ctx
+    d, ctx = items[0]
+    return d, ctx
 
 # =========================
 # 日付モデル
@@ -169,8 +223,9 @@ def _extract_from_html(url: str, html: bytes) -> Dict[str, DateEvidence]:
                 else:
                     meta_rev = DateEvidence(p, "meta", prop, url)
 
-    pub_text = _pick_labeled_date(lines, PUB_LABELS)
-    rev_text = _pick_labeled_date(lines, REV_LABELS)
+    # 発行日は候補が複数ある場合は古い日付を優先、改訂日は新しい日付を優先する
+    pub_text = _pick_labeled_date(lines, PUB_LABELS, pick_oldest=True)
+    rev_text = _pick_labeled_date(lines, REV_LABELS, pick_latest=True)
 
     pub = json_pub or meta_pub or (DateEvidence(pub_text[0], "text", pub_text[1], url) if pub_text else _unknown(url))
     rev = json_rev or meta_rev or (DateEvidence(rev_text[0], "text", rev_text[1], url) if rev_text else _unknown(url))
@@ -204,8 +259,9 @@ def _extract_from_pdf(url: str) -> Dict[str, DateEvidence]:
 
     lines = [l.strip() for l in "\n".join(texts).split("\n") if 3 <= len(l.strip()) <= 200]
 
-    pub = _pick_labeled_date(lines, PUB_LABELS)
-    rev = _pick_labeled_date(lines, REV_LABELS)
+    # PDFでも同様に発行日は最古、改訂日は最新を選択
+    pub = _pick_labeled_date(lines, PUB_LABELS, pick_oldest=True)
+    rev = _pick_labeled_date(lines, REV_LABELS, pick_latest=True)
 
     return {
         "publication": DateEvidence(pub[0], "pdf", pub[1], url) if pub else _unknown(url),
