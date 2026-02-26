@@ -487,29 +487,60 @@ def check_site(target: Dict) -> List[Dict]:
             return rows
 
         # --- 通常HTML（リンク先ページを見てラベル付き日付を探す） ---
+        # 以下の一覧ページでは、商品情報が tr や li にまとめられており、
+        # 内部に複数の a タグ（画像リンク・タイトルリンク・在庫リンクなど）が存在する。
+        # そのため、各要素を走査し、キーワードを含むタイトルリンクを取得して処理する。
+        # 同一 URL の重複処理を防ぐために一度処理した URL はスキップする。
+        seen_urls: set[str] = set()
+
         for el in soup.select(target["selector"]):
-            # aタグでない場合もあるので「テキスト」と「リンク」を安全に扱う
-            text = el.get_text(strip=True) or ""
-            if not text:
+            anchor: Optional[BeautifulSoup] = None
+            # el 自身が a タグで href を持つ場合、そのまま採用
+            if el.name == "a" and el.get("href"):
+                anchor = el
+            else:
+                # 内側の a タグを走査し、タイトルにガイドライン関連キーワードが含まれるものを採用
+                for a in el.find_all("a"):
+                    href = a.get("href")
+                    if not href:
+                        continue
+                    t = a.get_text(strip=True) or ""
+                    # 画像リンクや在庫リンクなどタイトル以外のリンクはスキップ
+                    if not any(k in t for k in KEYWORDS):
+                        continue
+                    anchor = a
+                    break
+            # キーワードを含むリンクが見つからない場合は無視
+            if not anchor:
                 continue
-            if not any(k in text for k in KEYWORDS):
+            title = anchor.get_text(strip=True) or ""
+            # 空白や極端に短い/長いタイトルはノイズとして除外
+            if not title or not (8 < len(title) < 250):
                 continue
-            if not (8 < len(text) < 250):
+            # ガイドラインを示すキーワードが含まれない場合は対象外
+            if not any(k in title for k in KEYWORDS):
                 continue
+            href = anchor.get("href")
+            if not href:
+                continue
+            url = urljoin(target["url"], href)
+            # 既に同じ URL を処理済みならスキップ
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            norm = normalize_title(title)
 
-            href = el.get("href")
-            url = urljoin(target["url"], href) if href else target["url"]
-            norm = normalize_title(text)
-
+            # ページ先で発刊日・改訂日を抽出
             dates = extract_dates_for_url(url)
+            # HTTPヘッダから Last-Modified を取得
             lm = get_last_modified(url)
 
             rows.append({
                 "論理ID": f"{target['publisher_key']}_{norm}",
-                "正式タイトル": text,
+                "正式タイトル": title,
                 "出版社": target["name"],
                 "種別": "Web",
-                "版情報": extract_year_hint(text),
+                "版情報": extract_year_hint(title),
                 "発刊日": dates["publication"].value,
                 "発刊日_level": dates["publication"].level,
                 "発刊日_evidence": dates["publication"].evidence,
