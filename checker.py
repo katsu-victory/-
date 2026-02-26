@@ -43,6 +43,9 @@ BAD_CONTEXT = ["copyright", "all rights reserved", "©", "c)", "著作権"]
 
 DATE_RE1 = re.compile(r"(20\d{2})[./-](\d{1,2})[./-](\d{1,2})")
 DATE_RE2 = re.compile(r"(20\d{2})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日")
+# 月までしか記載のない日付（例：2022年6月発行、2022/06）を拾うための正規表現
+DATE_RE3 = re.compile(r"(20\d{2})[./-](\d{1,2})(?![\d])")
+DATE_RE4 = re.compile(r"(20\d{2})\s*年\s*(\d{1,2})\s*月(?!\d)")
 
 def _to_ymd(y: str, m: str, d: str) -> Optional[str]:
     try:
@@ -52,11 +55,32 @@ def _to_ymd(y: str, m: str, d: str) -> Optional[str]:
     except Exception:
         return None
 
+def _to_ym(y: str, m: str) -> Optional[str]:
+    """
+    年と月のみから YYYY-MM 形式の文字列を返す。日付は補完しない。
+    無効な年月の場合は None を返す。
+    """
+    try:
+        yy, mm = int(y), int(m)
+        # 月が 1〜12 の範囲か確認
+        if 1 <= mm <= 12:
+            return f"{yy:04d}-{mm:02d}"
+    except Exception:
+        pass
+    return None
+
 def _find_dates(line: str) -> List[str]:
     out = []
+    # 完全な年月日を優先的に抽出
     for r in (DATE_RE1, DATE_RE2):
         for m in r.finditer(line):
             d = _to_ymd(m.group(1), m.group(2), m.group(3))
+            if d:
+                out.append(d)
+    # 年月のみのパターンも抽出
+    for r in (DATE_RE3, DATE_RE4):
+        for m in r.finditer(line):
+            d = _to_ym(m.group(1), m.group(2))
             if d:
                 out.append(d)
     return out
